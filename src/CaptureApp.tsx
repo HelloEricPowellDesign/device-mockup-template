@@ -3,9 +3,11 @@ import DeviceMockup, {
   type DeviceSpec,
   type DeviceType,
   type DisplaySize,
+  type ScreenTheme,
 } from './components/DeviceMockup';
 
 const DEVICE_TYPES: DeviceType[] = ['iphone', 'ipad', 'macbook', 'desktop'];
+const THEMES: ScreenTheme[] = ['nike', 'walmart', 'ebay'];
 
 function parseSpec(raw: string): DeviceSpec {
   const parts = raw.split('+').map((p) => p.trim()) as DeviceType[];
@@ -16,9 +18,15 @@ function parseSpec(raw: string): DeviceSpec {
   return 'ipad';
 }
 
+function parseTheme(raw: string | null): ScreenTheme {
+  if (raw && THEMES.includes(raw as ScreenTheme)) return raw as ScreenTheme;
+  return 'nike';
+}
+
 const params = new URLSearchParams(window.location.search);
 const size = (params.get('size') === 'card' ? 'card' : 'hero') as DisplaySize;
 const devices = parseSpec(params.get('spec') || 'ipad');
+const screenTheme = parseTheme(params.get('theme'));
 const base = EXPORT_SIZES[size];
 const dim = {
   w: Number(params.get('w')) || base.w,
@@ -44,6 +52,7 @@ export default function CaptureApp() {
         size={size}
         exportMode
         animVariant={0}
+        screenTheme={screenTheme}
       />
     </div>
   );

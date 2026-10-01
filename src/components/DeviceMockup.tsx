@@ -1,11 +1,15 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import './device-mockup.css';
-import ScreenContent from './ScreenContent';
+import ScreenContent, {
+  ScreenThemeContext,
+  type ScreenTheme,
+} from './ScreenContent';
 
 export type DeviceType = 'iphone' | 'ipad' | 'macbook' | 'desktop';
 export type DisplaySize = 'card' | 'hero';
 export type DeviceSpec = DeviceType | [DeviceType, DeviceType];
 export type MockupMode = 'dark' | 'light' | 'auto';
+export type { ScreenTheme };
 
 export type ScreenImages = Partial<Record<DeviceType, string>>;
 
@@ -26,6 +30,8 @@ export interface DeviceMockupProps {
   fillStage?: boolean;
   /** Stage appearance. `auto` follows `html[data-mode]` / prefers-color-scheme. */
   mode?: MockupMode;
+  /** Placeholder UI accent — keeps Walmart/eBay from reading as Nike Form red. */
+  screenTheme?: ScreenTheme;
 }
 
 export const DEVICE_LABELS: Record<DeviceType, string> = {
@@ -64,7 +70,8 @@ function getScale(device: DeviceType, size: DisplaySize, role: 'single' | 'prima
 }
 
 /* ── Shared visuals ── */
-const specular  = `1px solid rgba(255,255,255,0.13)`;
+const specular  = 'var(--device-edge)';
+const edgeDark  = 'var(--device-edge-dark)';
 const screenRecess = `inset 0 1px 4px rgba(0,0,0,0.9), inset 0 0 1px #000`;
 const glow = (c = 'rgba(0,0,0,0.18)') => `0 0 28px 3px ${c}`;
 
@@ -72,7 +79,7 @@ const glow = (c = 'rgba(0,0,0,0.18)') => `0 0 28px 3px ${c}`;
 function shadow(hero: boolean) {
   const d = hero;
   return [
-    `0 0 0 1px rgba(255,255,255,var(--shadow-rim, 0.06))`,
+    `0 0 0 1px var(--device-rim, rgba(255,255,255,0.06))`,
     `0 2px 6px rgba(0,0,0,var(--shadow-near, 0.55))`,
     `var(--cast-x, 0px) calc(var(--cast-y, ${d ? 20 : 10}px) * 0.55) var(--cast-blur, ${d ? 56 : 28}px) rgba(0,0,0,var(--shadow-mid, 0.55))`,
     `calc(var(--cast-x, 0px) * 1.4) var(--cast-y, ${d ? 52 : 26}px) calc(var(--cast-blur, ${d ? 120 : 60}px) * 1.35) rgba(0,0,0,var(--shadow-far, 0.42))`,
@@ -128,23 +135,24 @@ function IPhone({ size, screenImage }: { size: DisplaySize; screenImage?: string
       position: 'absolute', [side]: -2, top,
       width: 2, height: h,
       borderRadius: side === 'left' ? '1px 0 0 1px' : '0 1px 1px 0',
-      background: 'linear-gradient(180deg, #323234 0%, #1e1e20 50%, #2a2a2c 100%)',
-      boxShadow: `${side === 'left' ? '-1px' : '1px'} 0 3px rgba(0,0,0,0.9)`,
+      background: 'linear-gradient(180deg, var(--metal-btn-hi) 0%, var(--metal-btn-mid) 50%, var(--metal-btn) 100%)',
+      boxShadow: `${side === 'left' ? '-1px' : '1px'} 0 3px rgba(0,0,0,0.35)`,
     }} />
   );
 
   return (
     <div style={{ position: 'relative', flexShrink: 0 }}>
-      <div className="device-metal" style={{ width: W, height: H, borderRadius: R, border: specular, boxShadow: shadow(false), position: 'relative' }}>
+      {/* White iPhone SKU — frosted glass + silver aluminum rails */}
+      <div className="device-metal device-finish-white" style={{ width: W, height: H, borderRadius: R, border: specular, boxShadow: shadow(false), position: 'relative' }}>
 
         {/* Action button — left, top (small pill) */}
         <div style={{
           position: 'absolute', left: -3, top: 62,
           width: 3, height: 18,
           borderRadius: '2px 0 0 2px',
-          background: 'linear-gradient(180deg, #3a3a3c, #2a2a2c)',
-          boxShadow: '-1px 0 3px rgba(0,0,0,0.9)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'linear-gradient(180deg, var(--metal-btn-hi), var(--metal-btn))',
+          boxShadow: '-1px 0 3px rgba(0,0,0,0.35)',
+          border: specular,
           borderRight: 'none',
         }} />
 
@@ -161,9 +169,9 @@ function IPhone({ size, screenImage }: { size: DisplaySize; screenImage?: string
           position: 'absolute', right: -3, top: 166,
           width: 3, height: 72,
           borderRadius: '0 3px 3px 0',
-          background: 'linear-gradient(180deg, #2e2e30 0%, #262628 40%, #2e2e30 100%)',
-          boxShadow: '2px 0 4px rgba(0,0,0,0.9), inset -1px 0 1px rgba(255,255,255,0.05)',
-          border: '1px solid rgba(255,255,255,0.07)',
+          background: 'linear-gradient(180deg, var(--metal-hi) 0%, var(--metal-btn-mid) 40%, var(--metal-hi) 100%)',
+          boxShadow: '2px 0 4px rgba(0,0,0,0.35), inset -1px 0 1px rgba(255,255,255,0.35)',
+          border: specular,
           borderLeft: 'none',
         }} />
         {/* Camera Control inner groove (haptic rail texture) */}
@@ -171,7 +179,7 @@ function IPhone({ size, screenImage }: { size: DisplaySize; screenImage?: string
           position: 'absolute', right: -1, top: 178,
           width: 1, height: 48,
           borderRadius: 1,
-          background: 'rgba(255,255,255,0.08)',
+          background: 'rgba(255,255,255,0.35)',
         }} />
 
         {/* Screen recess — ultra-thin bezel */}
@@ -205,7 +213,8 @@ function IPad({ size, screenImage }: { size: DisplaySize; screenImage?: string }
 
   return (
     <div style={{ position: 'relative', flexShrink: 0 }}>
-      <div className="device-metal" style={{ width: W, height: H, borderRadius: R, border: specular, boxShadow: shadow(false), position: 'relative' }}>
+      {/* Silver only — no white iPad Pro SKU */}
+      <div className="device-metal device-finish-silver" style={{ width: W, height: H, borderRadius: R, border: specular, boxShadow: shadow(false), position: 'relative' }}>
         {/* FaceID / camera pill — centered top bezel */}
         <div style={{
           position: 'absolute', top: 4, left: '50%', transform: 'translateX(-50%)',
@@ -218,12 +227,12 @@ function IPad({ size, screenImage }: { size: DisplaySize; screenImage?: string }
         <div style={{
           position: 'absolute', right: -2, top: 52, width: 2, height: 28,
           borderRadius: '0 2px 2px 0',
-          background: 'linear-gradient(180deg, #2a2a2c, #1e1e20)',
-          boxShadow: '1px 0 3px rgba(0,0,0,0.8)',
+          background: 'linear-gradient(180deg, var(--metal-btn), var(--metal-mid-lo))',
+          boxShadow: '1px 0 3px rgba(0,0,0,0.3)',
         }} />
         {/* Volume buttons (left edge) */}
-        <div style={{ position: 'absolute', left: -2, top: 72, width: 2, height: 26, borderRadius: '2px 0 0 2px', background: 'linear-gradient(180deg,#2a2a2c,#1e1e20)', boxShadow: '-1px 0 3px rgba(0,0,0,0.8)' }} />
-        <div style={{ position: 'absolute', left: -2, top: 106, width: 2, height: 26, borderRadius: '2px 0 0 2px', background: 'linear-gradient(180deg,#2a2a2c,#1e1e20)', boxShadow: '-1px 0 3px rgba(0,0,0,0.8)' }} />
+        <div style={{ position: 'absolute', left: -2, top: 72, width: 2, height: 26, borderRadius: '2px 0 0 2px', background: 'linear-gradient(180deg, var(--metal-btn), var(--metal-mid-lo))', boxShadow: '-1px 0 3px rgba(0,0,0,0.3)' }} />
+        <div style={{ position: 'absolute', left: -2, top: 106, width: 2, height: 26, borderRadius: '2px 0 0 2px', background: 'linear-gradient(180deg, var(--metal-btn), var(--metal-mid-lo))', boxShadow: '-1px 0 3px rgba(0,0,0,0.3)' }} />
 
         <div style={{ position: 'absolute', inset: BW, borderRadius: R - BW, background: '#050507', boxShadow: screenRecess, overflow: 'hidden' }}>
           <div style={{ position: 'absolute', inset: 0, borderRadius: 'inherit', boxShadow: glow(), zIndex: 5, pointerEvents: 'none' }} />
@@ -279,13 +288,13 @@ function MacBook({ size, screenImage }: { size: DisplaySize; screenImage?: strin
           position: 'absolute',
           inset: 0,
           background: `
-            linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 11%),
-            linear-gradient(168deg, #303034 0%, #242428 36%, #1a1a1e 72%, #141416 100%)
+            linear-gradient(180deg, var(--metal-sheen) 0%, transparent 11%),
+            linear-gradient(168deg, var(--metal-hi) 0%, var(--metal-mid-hi) 36%, var(--metal-mid) 72%, var(--metal-lo) 100%)
           `,
           borderRadius: '2px 2px 16px 16px',
           border: specular,
-          borderTop: '1px solid rgba(0,0,0,0.8)',
-          boxShadow: '0 20px 44px rgba(0,0,0,0.52)',
+          borderTop: edgeDark,
+          boxShadow: '0 20px 44px rgba(0,0,0,0.22)',
           overflow: 'hidden',
         }}>
           {/* Lid cast near hinge */}
@@ -295,11 +304,11 @@ function MacBook({ size, screenImage }: { size: DisplaySize; screenImage?: strin
             left: 0,
             right: 0,
             height: 48,
-            background: 'linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.15) 55%, transparent 100%)',
+            background: 'linear-gradient(180deg, var(--metal-cast) 0%, var(--metal-cast-soft) 55%, transparent 100%)',
             pointerEvents: 'none',
           }} />
 
-          {/* Keyboard well — soft rows */}
+          {/* Keyboard well — soft rows (stays charcoal on real silver MacBooks) */}
           <div style={{
             position: 'absolute',
             top: 18,
@@ -307,8 +316,8 @@ function MacBook({ size, screenImage }: { size: DisplaySize; screenImage?: strin
             right: 26,
             height: 122,
             borderRadius: 7,
-            background: 'linear-gradient(180deg, #0c0c0e 0%, #101012 100%)',
-            boxShadow: 'inset 0 2px 5px rgba(0,0,0,0.85), inset 0 0 0 1px rgba(255,255,255,0.035)',
+            background: 'linear-gradient(180deg, var(--metal-well) 0%, var(--metal-deep) 100%)',
+            boxShadow: 'inset 0 2px 5px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.06)',
             overflow: 'hidden',
           }}>
             {[0, 1, 2, 3, 4].map((row) => (
@@ -321,8 +330,8 @@ function MacBook({ size, screenImage }: { size: DisplaySize; screenImage?: strin
                   top: 11 + row * 21,
                   height: 14,
                   borderRadius: 3,
-                  background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.018) 100%)',
-                  boxShadow: 'inset 0 -1px 0 rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.025)',
+                  background: 'linear-gradient(180deg, var(--metal-key-hi) 0%, var(--metal-key-lo) 100%)',
+                  boxShadow: 'inset 0 -1px 0 rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.04)',
                 }}
               />
             ))}
@@ -337,8 +346,8 @@ function MacBook({ size, screenImage }: { size: DisplaySize; screenImage?: strin
             width: 122,
             height: 78,
             borderRadius: 9,
-            background: 'linear-gradient(180deg, #242428 0%, #1a1a1e 100%)',
-            boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.07), inset 0 2px 4px rgba(0,0,0,0.5)',
+            background: 'linear-gradient(180deg, var(--metal-mid-hi) 0%, var(--metal-mid) 100%)',
+            boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.12), inset 0 2px 4px rgba(0,0,0,0.18)',
           }} />
 
           {/* Palm sheen */}
@@ -346,7 +355,7 @@ function MacBook({ size, screenImage }: { size: DisplaySize; screenImage?: strin
             position: 'absolute',
             inset: 0,
             borderRadius: 'inherit',
-            background: 'linear-gradient(150deg, rgba(255,255,255,0.055) 0%, transparent 40%)',
+            background: 'linear-gradient(150deg, var(--metal-palm) 0%, transparent 40%)',
             pointerEvents: 'none',
           }} />
         </div>
@@ -360,9 +369,9 @@ function MacBook({ size, screenImage }: { size: DisplaySize; screenImage?: strin
           height: bodyT,
           transformOrigin: 'top center',
           transform: 'rotateX(-90deg)',
-          background: 'linear-gradient(180deg, #2a2a2e 0%, #151517 50%, #0a0a0c 100%)',
+          background: 'linear-gradient(180deg, var(--metal-mid) 0%, var(--metal-lo) 50%, var(--metal-ink) 100%)',
           borderRadius: '0 0 4px 4px',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.13)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35)',
         }} />
       </div>
 
@@ -379,13 +388,13 @@ function MacBook({ size, screenImage }: { size: DisplaySize; screenImage?: strin
         zIndex: 3,
       }}>
         <div
-          className="device-metal"
+          className="device-metal device-finish-silver"
           style={{
             width: screenW,
             height: screenH,
             borderRadius: `${R}px ${R}px 3px 3px`,
             border: specular,
-            borderBottom: '1px solid rgba(0,0,0,0.8)',
+            borderBottom: edgeDark,
             boxShadow: shadow(false),
             position: 'relative',
           }}
@@ -432,8 +441,8 @@ function MacBook({ size, screenImage }: { size: DisplaySize; screenImage?: strin
         top: hingeY - 4,
         height: 9,
         borderRadius: 4.5,
-        background: 'linear-gradient(180deg, #2c2c30 0%, #101012 48%, #1c1c20 100%)',
-        boxShadow: '0 3px 7px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -1px 0 rgba(0,0,0,0.75)',
+        background: 'linear-gradient(180deg, var(--metal-mid) 0%, var(--metal-deep) 48%, var(--metal-mid-lo) 100%)',
+        boxShadow: '0 3px 7px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 0 rgba(0,0,0,0.25)',
         transform: 'translateZ(7px)',
         zIndex: 5,
       }} />
@@ -460,7 +469,8 @@ function DesktopMonitor({ size, screenImage }: { size: DisplaySize; screenImage?
       flexShrink: 0,
       transformStyle: 'preserve-3d',
     }}>
-      <div className="device-metal" style={{ width: screenW, height: screenH, borderRadius: R, border: specular, boxShadow: shadow(false), position: 'relative' }}>
+      {/* Silver aluminum chassis — Studio Display has no white SKU */}
+      <div className="device-metal device-finish-silver" style={{ width: screenW, height: screenH, borderRadius: R, border: specular, boxShadow: shadow(false), position: 'relative' }}>
         <div style={{ position: 'absolute', top: 5, left: '50%', transform: 'translateX(-50%)', width: 6, height: 6, borderRadius: '50%', background: '#0a0a0c', boxShadow: '0 0 0 1px rgba(255,255,255,0.05)' }} />
 
         <div style={{ position: 'absolute', inset: BW, borderRadius: R - BW, background: '#0a0a0c', boxShadow: screenRecess, overflow: 'hidden' }}>
@@ -477,16 +487,16 @@ function DesktopMonitor({ size, screenImage }: { size: DisplaySize; screenImage?
         height: neckH,
         flexShrink: 0,
         zIndex: 2,
-        background: 'linear-gradient(90deg, #101012 0%, #2a2a2e 28%, #1c1c20 52%, #121214 100%)',
+        background: 'linear-gradient(90deg, var(--metal-lo) 0%, var(--metal-hi) 28%, var(--metal-mid) 52%, var(--metal-deep) 100%)',
         borderRadius: '0 0 4px 4px',
-        boxShadow: 'inset 1px 0 0 rgba(255,255,255,0.07), inset -1px 0 0 rgba(0,0,0,0.55)',
+        boxShadow: 'inset 1px 0 0 rgba(255,255,255,0.35), inset -1px 0 0 rgba(0,0,0,0.18)',
       }}>
         {/* Stem highlight ridge */}
         <div aria-hidden style={{
           position: 'absolute',
           inset: '10% 38% 8% 38%',
           borderRadius: 2,
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%)',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.06) 100%)',
           pointerEvents: 'none',
         }} />
         {/* Joint collar into the foot */}
@@ -497,8 +507,8 @@ function DesktopMonitor({ size, screenImage }: { size: DisplaySize; screenImage?
           bottom: -2,
           height: 7,
           borderRadius: 3,
-          background: 'linear-gradient(180deg, #2e2e32 0%, #18181a 100%)',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.12), 0 2px 4px rgba(0,0,0,0.45)',
+          background: 'linear-gradient(180deg, var(--metal-hi) 0%, var(--metal-mid-lo) 100%)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4), 0 2px 4px rgba(0,0,0,0.2)',
           zIndex: 1,
         }} />
       </div>
@@ -524,15 +534,15 @@ function DesktopMonitor({ size, screenImage }: { size: DisplaySize; screenImage?
           transform: 'rotateX(74deg)',
           borderRadius: '50%',
           background: `
-            radial-gradient(ellipse 55% 48% at 38% 32%, rgba(255,255,255,0.16) 0%, transparent 52%),
-            radial-gradient(ellipse 80% 70% at 50% 60%, #1a1a1e 0%, #101012 100%),
-            linear-gradient(180deg, #323236 0%, #222226 40%, #141416 100%)
+            radial-gradient(ellipse 55% 48% at 38% 32%, rgba(255,255,255,0.4) 0%, transparent 52%),
+            radial-gradient(ellipse 80% 70% at 50% 60%, var(--metal-mid) 0%, var(--metal-deep) 100%),
+            linear-gradient(180deg, var(--metal-hi) 0%, var(--metal-mid-hi) 40%, var(--metal-lo) 100%)
           `,
-          border: '1px solid rgba(255,255,255,0.11)',
+          border: specular,
           boxShadow: `
-            inset 0 1px 0 rgba(255,255,255,0.16),
-            inset 0 -8px 14px rgba(0,0,0,0.35),
-            0 10px 22px rgba(0,0,0,0.4)
+            inset 0 1px 0 rgba(255,255,255,0.45),
+            inset 0 -8px 14px rgba(0,0,0,0.12),
+            0 10px 22px rgba(0,0,0,0.18)
           `,
         }} />
         {/* Front rim — extruded thickness under the near edge */}
@@ -543,8 +553,8 @@ function DesktopMonitor({ size, screenImage }: { size: DisplaySize; screenImage?
           top: 12,
           height: 8,
           borderRadius: '0 0 50% 50%',
-          background: 'linear-gradient(180deg, #2c2c30 0%, #161618 42%, #0a0a0c 100%)',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), 0 3px 8px rgba(0,0,0,0.55)',
+          background: 'linear-gradient(180deg, var(--metal-mid) 0%, var(--metal-lo) 42%, var(--metal-ink) 100%)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3), 0 3px 8px rgba(0,0,0,0.22)',
         }} />
         {/* Contact shade tucked under the rim */}
         <div aria-hidden style={{
@@ -554,7 +564,7 @@ function DesktopMonitor({ size, screenImage }: { size: DisplaySize; screenImage?
           top: 17,
           height: 6,
           borderRadius: '50%',
-          background: 'rgba(0,0,0,0.45)',
+          background: 'rgba(0,0,0,0.22)',
           filter: 'blur(3px)',
           pointerEvents: 'none',
         }} />
@@ -781,6 +791,7 @@ export default function DeviceMockup({
   exportMode = false,
   fillStage = false,
   mode = 'auto',
+  screenTheme = 'nike',
 }: DeviceMockupProps) {
   const hero = size === 'hero';
   const hasText = hero && !!(title || description);
@@ -868,7 +879,7 @@ export default function DeviceMockup({
     const nx = Math.max(-1, Math.min(1, (t.curY - rest.rotateY) / Math.max(range.y, 1)));
     const ny = Math.max(-1, Math.min(1, (t.curX - rest.rotateX) / Math.max(range.x, 1)));
     const light = modeRef.current === 'light';
-    const sheenBoost = light ? 0.012 : 0;
+    const sheenBoost = light ? 0.04 : 0;
 
     const sheenAngle = 148 - nx * 52 + ny * 24;
     const sheenX = 30 - nx * 26;
@@ -1007,6 +1018,7 @@ export default function DeviceMockup({
   }, [clearHomeTimer, rest.rotateX, rest.rotateY, startTiltLoop]);
 
   return (
+    <ScreenThemeContext.Provider value={screenTheme}>
     <div
       ref={stageRef}
       className={className}
@@ -1110,5 +1122,6 @@ export default function DeviceMockup({
         </div>
       )}
     </div>
+    </ScreenThemeContext.Provider>
   );
 }

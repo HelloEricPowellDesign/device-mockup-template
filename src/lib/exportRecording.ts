@@ -114,34 +114,6 @@ async function recordViaCanvas(
   return { video, ext };
 }
 
-async function maybeTranscodeToMp4(webm: Blob): Promise<Blob | null> {
-  try {
-    const { FFmpeg } = await import('@ffmpeg/ffmpeg');
-    const { fetchFile, toBlobURL } = await import('@ffmpeg/util');
-    const ffmpeg = new FFmpeg();
-    const base = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
-    await ffmpeg.load({
-      coreURL: await toBlobURL(`${base}/ffmpeg-core.js`, 'text/javascript'),
-      wasmURL: await toBlobURL(`${base}/ffmpeg-core.wasm`, 'application/wasm'),
-    });
-    await ffmpeg.writeFile('in.webm', await fetchFile(webm));
-    await ffmpeg.exec([
-      '-i', 'in.webm',
-      '-c:v', 'libx264',
-      '-pix_fmt', 'yuv420p',
-      '-an',
-      '-movflags', '+faststart',
-      'out.mp4',
-    ]);
-    const data = await ffmpeg.readFile('out.mp4');
-    const bytes = data instanceof Uint8Array ? data : new TextEncoder().encode(String(data));
-    const copy = new Uint8Array(bytes);
-    return new Blob([copy], { type: 'video/mp4' });
-  } catch {
-    return null;
-  }
-}
-
 export type ExportResult = {
   kind: ExportKind;
   durationMs: number;
@@ -180,16 +152,9 @@ export async function exportStage(options: {
   files.push({ filename: videoName, blob: video });
   if (download) downloadBlob(video, videoName);
 
-  if (ext === 'webm') {
-    onProgress?.('Encoding MP4…', 0.8);
-    const mp4 = await maybeTranscodeToMp4(video);
-    if (mp4) {
-      const mp4Name = `${slug}-${kind}.mp4`;
-      files.push({ filename: mp4Name, blob: mp4 });
-      if (download) downloadBlob(mp4, mp4Name);
-    }
-  }
-
+  // Skip in-browser MP4. ffmpeg.wasm hangs on long/high-res WebMs and pinned
+  // progress at ~36% ("Encoding MP4…"). PNG + WebM are enough for the portfolio;
+  // MP4 can be transcoded offline later if needed.
   onProgress?.('Done', 1);
   return { kind, durationMs, files };
 }

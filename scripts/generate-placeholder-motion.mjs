@@ -16,16 +16,27 @@ const root = path.resolve(__dirname, '..');
 const outDir = path.resolve(root, '../ericpowell.design/public/motion');
 
 const JOBS = [
-  { name: 'nsrl-form-hero', size: 'hero', spec: 'ipad', w: 2880, h: 1152 },
-  { name: 'nsrl-form-card', size: 'card', spec: 'ipad', w: 1280, h: 800 },
-  { name: 'ebay-motors-hero', size: 'hero', spec: 'macbook', w: 2880, h: 1152 },
-  { name: 'ebay-motors-card', size: 'card', spec: 'macbook', w: 1280, h: 800 },
-  { name: 'walmart-fitment-hero', size: 'hero', spec: 'desktop+iphone', w: 2880, h: 1152 },
-  { name: 'walmart-fitment-card', size: 'card', spec: 'desktop+iphone', w: 1280, h: 800 },
+  { name: 'nsrl-form-hero', size: 'hero', spec: 'ipad', theme: 'nike', w: 2880, h: 1152 },
+  { name: 'nsrl-form-card', size: 'card', spec: 'ipad', theme: 'nike', w: 1280, h: 800 },
+  { name: 'ebay-motors-hero', size: 'hero', spec: 'macbook', theme: 'ebay', w: 2880, h: 1152 },
+  { name: 'ebay-motors-card', size: 'card', spec: 'macbook', theme: 'ebay', w: 1280, h: 800 },
+  { name: 'walmart-fitment-hero', size: 'hero', spec: 'desktop+iphone', theme: 'walmart', w: 2880, h: 1152 },
+  { name: 'walmart-fitment-card', size: 'card', spec: 'desktop+iphone', theme: 'walmart', w: 1280, h: 800 },
+  { name: 'walmart-plus-hero', size: 'hero', spec: 'macbook+iphone', theme: 'walmart', w: 2880, h: 1152 },
+  { name: 'walmart-plus-card', size: 'card', spec: 'macbook+iphone', theme: 'walmart', w: 1280, h: 800 },
 ];
 
 async function main() {
   await mkdir(outDir, { recursive: true });
+
+  const filter = process.argv.slice(2).filter((a) => !a.startsWith('-'));
+  const jobs = filter.length
+    ? JOBS.filter((j) => filter.some((f) => j.name.includes(f)))
+    : JOBS;
+  if (!jobs.length) {
+    console.error('No jobs matched:', filter.join(', '));
+    process.exit(1);
+  }
 
   const server = await createServer({
     root,
@@ -39,7 +50,7 @@ async function main() {
   const browser = await chromium.launch({ headless: true });
 
   try {
-    for (const job of JOBS) {
+    for (const job of jobs) {
       console.log(`Capturing ${job.name} (${job.w}×${job.h})…`);
       const page = await browser.newPage({
         viewport: { width: job.w, height: job.h },
@@ -49,6 +60,7 @@ async function main() {
         capture: '',
         size: job.size,
         spec: job.spec,
+        theme: job.theme || 'nike',
         w: String(job.w),
         h: String(job.h),
       });
@@ -68,7 +80,7 @@ async function main() {
   }
 
   // Remove stale looping videos from earlier pipeline
-  for (const job of JOBS) {
+  for (const job of jobs) {
     for (const ext of ['webm', 'mp4']) {
       try {
         await rm(path.join(outDir, `${job.name}.${ext}`), { force: true });

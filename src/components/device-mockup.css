@@ -39,17 +39,92 @@
   }
 }
 
+/*
+  Chassis finishes (real product availability):
+  - iPhone → White (glass) + silver aluminum rails
+  - iPad / MacBook / Desktop → Silver only (no white SKU)
+  Dark mode keeps the existing space-black metal.
+*/
+[data-mockup-mode="dark"] {
+  --metal-hi: #2e2e30;
+  --metal-mid-hi: #242426;
+  --metal-mid: #1c1c1e;
+  --metal-mid-lo: #181818;
+  --metal-lo: #141416;
+  --metal-deep: #101012;
+  --metal-ink: #0a0a0c;
+  --metal-btn: #2a2a2c;
+  --metal-btn-hi: #3a3a3c;
+  --metal-btn-mid: #262628;
+  --metal-well: #0c0c0e;
+  --metal-key-hi: rgba(255, 255, 255, 0.05);
+  --metal-key-lo: rgba(255, 255, 255, 0.018);
+  --metal-sheen: rgba(255, 255, 255, 0.1);
+  --metal-palm: rgba(255, 255, 255, 0.055);
+  --metal-cast: rgba(0, 0, 0, 0.5);
+  --metal-cast-soft: rgba(0, 0, 0, 0.15);
+  --device-edge: 1px solid rgba(255, 255, 255, 0.13);
+  --device-edge-dark: 1px solid rgba(0, 0, 0, 0.8);
+  --device-rim: rgba(255, 255, 255, var(--shadow-rim, 0.06));
+}
+
+/* Apple Silver aluminum — cool light gray with darker recesses */
+[data-mockup-mode="light"] {
+  --metal-hi: #f5f5f7;
+  --metal-mid-hi: #e8e8ed;
+  --metal-mid: #d8d8de;
+  --metal-mid-lo: #c8c8d0;
+  --metal-lo: #b4b4be;
+  --metal-deep: #9e9ea8;
+  --metal-ink: #8c8c96;
+  --metal-btn: #d0d0d8;
+  --metal-btn-hi: #ececf0;
+  --metal-btn-mid: #d8d8de;
+  --metal-well: #2a2a2e;
+  --metal-key-hi: rgba(255, 255, 255, 0.14);
+  --metal-key-lo: rgba(255, 255, 255, 0.06);
+  --metal-sheen: rgba(255, 255, 255, 0.45);
+  --metal-palm: rgba(255, 255, 255, 0.28);
+  --metal-cast: rgba(0, 0, 0, 0.14);
+  --metal-cast-soft: rgba(0, 0, 0, 0.05);
+  --device-edge: 1px solid rgba(0, 0, 0, 0.12);
+  --device-edge-dark: 1px solid rgba(0, 0, 0, 0.16);
+  --device-rim: rgba(0, 0, 0, 0.08);
+  --shadow-rim: 0;
+  --shadow-near: 0.05;
+  --shadow-mid: 0.06;
+  --shadow-far: 0.035;
+  --shadow-ambient: 0.018;
+  --floor-opacity: 0.06;
+}
+
+/* iPhone White — frosted white glass; rails stay slightly cooler/silver */
+[data-mockup-mode="light"] .device-finish-white {
+  --metal-hi: #ffffff;
+  --metal-mid-hi: #fbfbfd;
+  --metal-mid: #f4f4f6;
+  --metal-mid-lo: #ececf0;
+  --metal-lo: #e2e2e8;
+  --metal-deep: #d6d6de;
+  --metal-ink: #cacad2;
+  --metal-btn: #d4d4dc;
+  --metal-btn-hi: #efeff3;
+  --metal-btn-mid: #e0e0e6;
+  --device-edge: 1px solid rgba(0, 0, 0, 0.1);
+  --device-edge-dark: 1px solid rgba(0, 0, 0, 0.12);
+}
+
 /* ── Lighting driven by tilt CSS vars (key light: upper-left) ── */
 .device-metal {
   background: linear-gradient(
     var(--metal-angle, 145deg),
-    #2e2e30 0%,
-    #242426 18%,
-    #1c1c1e 38%,
-    #181818 55%,
-    #1e1e20 72%,
-    #242426 88%,
-    #2a2a2c 100%
+    var(--metal-hi) 0%,
+    var(--metal-mid-hi) 18%,
+    var(--metal-mid) 38%,
+    var(--metal-mid-lo) 55%,
+    var(--metal-mid) 72%,
+    var(--metal-mid-hi) 88%,
+    var(--metal-hi) 100%
   );
 }
 
@@ -96,14 +171,4 @@
     scaleX(var(--floor-sx, 1));
   transform-origin: center center;
   will-change: transform, filter, background;
-}
-
-/* Soft cast defaults before tilt paints (light stages read too heavy otherwise) */
-[data-mockup-mode="light"] {
-  --shadow-rim: 0;
-  --shadow-near: 0.05;
-  --shadow-mid: 0.06;
-  --shadow-far: 0.035;
-  --shadow-ambient: 0.018;
-  --floor-opacity: 0.05;
 }

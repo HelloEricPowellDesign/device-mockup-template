@@ -1,3 +1,4 @@
+/// <reference types="node" />
 /**
  * Dev-only API: write exported motion assets into ericpowell.design
  * and keep matching work frontmatter in sync.

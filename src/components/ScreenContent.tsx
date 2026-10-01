@@ -1,6 +1,72 @@
-import { useRef, useState } from 'react';
+import { createContext, useContext, useRef, useState, type CSSProperties } from 'react';
 
 type ScreenVariant = 'mobile' | 'desktop';
+
+/** Brand-tinted placeholder chrome so stages don't all read as Nike Form. */
+export type ScreenTheme = 'nike' | 'walmart' | 'ebay';
+
+interface ScreenPalette {
+  accent: string;
+  soft: string;
+  border: string;
+  mid: string;
+  dim: string;
+  tile: string;
+  tileBorder: string;
+  strong: string;
+  row: string;
+  cta: string;
+}
+
+const PALETTES: Record<ScreenTheme, ScreenPalette> = {
+  nike: {
+    accent: '#f54a38',
+    soft: 'rgba(245,74,56,0.08)',
+    border: 'rgba(245,74,56,0.25)',
+    mid: 'rgba(245,74,56,0.6)',
+    dim: 'rgba(245,74,56,0.4)',
+    tile: 'rgba(245,74,56,0.12)',
+    tileBorder: 'rgba(245,74,56,0.2)',
+    strong: 'rgba(245,74,56,0.8)',
+    row: 'rgba(245,74,56,0.5)',
+    cta: 'rgba(245,74,56,0.12)',
+  },
+  // Walmart spark blue — membership / retail UI
+  walmart: {
+    accent: '#0071DC',
+    soft: 'rgba(0,113,220,0.10)',
+    border: 'rgba(0,113,220,0.28)',
+    mid: 'rgba(0,113,220,0.65)',
+    dim: 'rgba(0,113,220,0.42)',
+    tile: 'rgba(0,113,220,0.14)',
+    tileBorder: 'rgba(0,113,220,0.28)',
+    strong: 'rgba(0,113,220,0.85)',
+    row: 'rgba(0,113,220,0.55)',
+    cta: 'rgba(0,113,220,0.14)',
+  },
+  // eBay product blue (avoids Nike-red Form read)
+  ebay: {
+    accent: '#3665F3',
+    soft: 'rgba(54,101,243,0.10)',
+    border: 'rgba(54,101,243,0.28)',
+    mid: 'rgba(54,101,243,0.65)',
+    dim: 'rgba(54,101,243,0.42)',
+    tile: 'rgba(54,101,243,0.14)',
+    tileBorder: 'rgba(54,101,243,0.28)',
+    strong: 'rgba(54,101,243,0.85)',
+    row: 'rgba(54,101,243,0.55)',
+    cta: 'rgba(54,101,243,0.14)',
+  },
+};
+
+export const ScreenThemeContext = createContext<ScreenTheme>('nike');
+
+export function screenThemeFromCompany(company?: string): ScreenTheme {
+  const key = (company || '').toLowerCase();
+  if (key.includes('walmart')) return 'walmart';
+  if (key.includes('ebay')) return 'ebay';
+  return 'nike';
+}
 
 interface ScreenContentProps {
   variant: ScreenVariant;
@@ -36,13 +102,15 @@ function ScrollingImageScreen({ src }: { src: string }) {
           height: 'auto',
           display: 'block',
           '--scroll-dist': `-${scrollDist}px`,
-        } as React.CSSProperties}
+        } as CSSProperties}
       />
     </div>
   );
 }
 
 function MobileScreen({ size, image }: { size: 'card' | 'hero'; image?: string }) {
+  const theme = useContext(ScreenThemeContext);
+  const p = PALETTES[theme];
   const compact = size === 'card';
   // Natural frames are ~160–240px wide — keep chrome tiny so it reads as real iOS
   const statusPad = compact ? '8px 10px 2px' : '12px 14px 3px';
@@ -138,7 +206,7 @@ function MobileScreen({ size, image }: { size: 'card' | 'hero'; image?: string }
           width: compact ? 8 : 11,
           height: compact ? 8 : 11,
           borderRadius: '50%',
-          backgroundColor: '#f54a38',
+          backgroundColor: p.accent,
           opacity: 0.9,
         }} />
       </div>
@@ -168,9 +236,9 @@ function MobileScreen({ size, image }: { size: 'card' | 'hero'; image?: string }
           <div
             key={i}
             style={{
-              backgroundColor: row.accent ? 'rgba(245,74,56,0.08)' : '#1c1c1e',
+              backgroundColor: row.accent ? p.soft : '#1c1c1e',
               borderRadius: compact ? 4 : 5,
-              border: row.accent ? '1px solid rgba(245,74,56,0.25)' : '1px solid #2a2a2c',
+              border: row.accent ? `1px solid ${p.border}` : '1px solid #2a2a2c',
               padding: compact ? '4px 5px' : '5px 7px',
               animation: `screen-row-in 0.5s ease-out ${row.delay} both`,
               display: 'flex',
@@ -183,23 +251,23 @@ function MobileScreen({ size, image }: { size: 'card' | 'hero'; image?: string }
                 width: compact ? 34 : 50,
                 height: barH,
                 borderRadius: 1.5,
-                backgroundColor: row.accent ? 'rgba(245,74,56,0.6)' : '#3a3a3c',
+                backgroundColor: row.accent ? p.mid : '#3a3a3c',
               }} />
               <div style={{
                 width: compact ? 12 : 18,
                 height: barH,
                 borderRadius: 1.5,
-                backgroundColor: row.accent ? 'rgba(245,74,56,0.4)' : '#2a2a2c',
+                backgroundColor: row.accent ? p.dim : '#2a2a2c',
               }} />
             </div>
             <div style={{ width: '100%', height: compact ? 1.5 : 2, borderRadius: 1.5, backgroundColor: '#2a2a2c', overflow: 'hidden' }}>
               <div style={{
                 height: '100%',
                 borderRadius: 1.5,
-                backgroundColor: row.accent ? '#f54a38' : '#3a3a3c',
+                backgroundColor: row.accent ? p.accent : '#3a3a3c',
                 '--bar-w': row.barW,
                 animation: `bar-grow 0.8s cubic-bezier(0.4,0,0.2,1) ${row.delay} both`,
-              } as React.CSSProperties} />
+              } as CSSProperties} />
             </div>
           </div>
         ))}
@@ -212,8 +280,8 @@ function MobileScreen({ size, image }: { size: 'card' | 'hero'; image?: string }
                 flex: 1,
                 height: compact ? 12 : 16,
                 borderRadius: compact ? 2.5 : 3.5,
-                backgroundColor: i === 2 ? 'rgba(245,74,56,0.12)' : '#1c1c1e',
-                border: i === 2 ? '1px solid rgba(245,74,56,0.2)' : '1px solid #2a2a2c',
+                backgroundColor: i === 2 ? p.cta : '#1c1c1e',
+                border: i === 2 ? `1px solid ${p.tileBorder}` : '1px solid #2a2a2c',
               }}
             />
           ))}
@@ -224,6 +292,8 @@ function MobileScreen({ size, image }: { size: 'card' | 'hero'; image?: string }
 }
 
 function DesktopScreen({ size, image }: { size: 'card' | 'hero'; image?: string }) {
+  const theme = useContext(ScreenThemeContext);
+  const p = PALETTES[theme];
   const compact = size === 'card';
 
   if (image) return <ScrollingImageScreen src={image} />;
@@ -235,7 +305,7 @@ function DesktopScreen({ size, image }: { size: 'card' | 'hero'; image?: string 
         width: compact ? 28 : 48, borderRight: '1px solid #2a2a2c', display: 'flex', flexDirection: 'column',
         alignItems: 'center', padding: compact ? '8px 0' : '14px 0', gap: compact ? 6 : 10, flexShrink: 0,
       }}>
-        <div style={{ width: compact ? 14 : 24, height: compact ? 14 : 24, borderRadius: '50%', backgroundColor: '#f54a38' }} />
+        <div style={{ width: compact ? 14 : 24, height: compact ? 14 : 24, borderRadius: '50%', backgroundColor: p.accent }} />
         {[0, 1, 2, 3].map((i) => (
           <div key={i} style={{
             width: compact ? 12 : 20, height: compact ? 12 : 20, borderRadius: compact ? 3 : 5,
@@ -252,7 +322,7 @@ function DesktopScreen({ size, image }: { size: 'card' | 'hero'; image?: string 
           <div style={{ width: compact ? 50 : 88, height: compact ? 5 : 8, borderRadius: 3, backgroundColor: '#3a3a3c' }} />
           <div style={{ display: 'flex', gap: 4 }}>
             {[0, 1].map((i) => (
-              <div key={i} style={{ width: compact ? 18 : 32, height: compact ? 8 : 14, borderRadius: compact ? 3 : 5, backgroundColor: i === 1 ? '#f54a38' : '#2a2a2c' }} />
+              <div key={i} style={{ width: compact ? 18 : 32, height: compact ? 8 : 14, borderRadius: compact ? 3 : 5, backgroundColor: i === 1 ? p.accent : '#2a2a2c' }} />
             ))}
           </div>
         </div>
@@ -260,7 +330,7 @@ function DesktopScreen({ size, image }: { size: 'card' | 'hero'; image?: string 
         {/* Stat tiles */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: compact ? 4 : 8, marginBottom: compact ? 6 : 12, flexShrink: 0 }}>
           {[
-            { color: 'rgba(245,74,56,0.12)', border: 'rgba(245,74,56,0.2)', accent: true },
+            { color: p.tile, border: p.tileBorder, accent: true },
             { color: '#1c1c1e', border: '#2a2a2c', accent: false },
             { color: '#1c1c1e', border: '#2a2a2c', accent: false },
           ].map((tile, i) => (
@@ -269,8 +339,8 @@ function DesktopScreen({ size, image }: { size: 'card' | 'hero'; image?: string 
               borderRadius: compact ? 4 : 8, padding: compact ? '4px 6px' : '8px 10px',
               animation: `screen-row-in 0.4s ease-out ${0.3 + i * 0.15}s both`,
             }}>
-              <div style={{ width: '60%', height: compact ? 3 : 5, borderRadius: 2, backgroundColor: tile.accent ? 'rgba(245,74,56,0.5)' : '#3a3a3c', marginBottom: compact ? 4 : 6 }} />
-              <div style={{ width: '40%', height: compact ? 5 : 8, borderRadius: 2, backgroundColor: tile.accent ? 'rgba(245,74,56,0.8)' : '#4a4a4c' }} />
+              <div style={{ width: '60%', height: compact ? 3 : 5, borderRadius: 2, backgroundColor: tile.accent ? p.row : '#3a3a3c', marginBottom: compact ? 4 : 6 }} />
+              <div style={{ width: '40%', height: compact ? 5 : 8, borderRadius: 2, backgroundColor: tile.accent ? p.strong : '#4a4a4c' }} />
             </div>
           ))}
         </div>
@@ -290,7 +360,7 @@ function DesktopScreen({ size, image }: { size: 'card' | 'hero'; image?: string 
             }}>
               <div style={{ width: '40%', height: compact ? 4 : 6, borderRadius: 2, backgroundColor: i % 3 === 0 ? '#3a3a3c' : '#2a2a2c' }} />
               <div style={{ width: '25%', height: compact ? 4 : 6, borderRadius: 2, backgroundColor: '#2a2a2c' }} />
-              <div style={{ width: '20%', height: compact ? 4 : 6, borderRadius: 2, backgroundColor: i === 2 ? 'rgba(245,74,56,0.5)' : '#2a2a2c' }} />
+              <div style={{ width: '20%', height: compact ? 4 : 6, borderRadius: 2, backgroundColor: i === 2 ? p.row : '#2a2a2c' }} />
               <div style={{ width: '15%', height: compact ? 4 : 6, borderRadius: 2, backgroundColor: '#1e1e20' }} />
             </div>
           ))}
