@@ -4,16 +4,53 @@ import DeviceMockup, { DeviceType, DeviceSpec } from './components/DeviceMockup'
 type HeroOption = {
   label: string;
   spec: DeviceSpec;
+  title?: string;
+  description?: string;
 };
 
 const heroOptions: HeroOption[] = [
-  { label: 'iPhone',               spec: 'iphone' },
-  { label: 'iPad',                 spec: 'ipad' },
-  { label: 'MacBook',              spec: 'macbook' },
-  { label: 'Desktop',              spec: 'desktop' },
-  { label: 'Desktop + iPhone',     spec: ['desktop', 'iphone'] },
-  { label: 'MacBook + iPhone',     spec: ['macbook', 'iphone'] },
-  { label: 'iPad + iPhone',        spec: ['ipad', 'iphone'] },
+  {
+    label: 'iPhone',
+    spec: 'iphone',
+    title: 'Transit Companion',
+    description: 'A real-time transit app designed for commuters navigating complex urban networks. Focused on glanceability and one-handed use.',
+  },
+  {
+    label: 'iPad',
+    spec: 'ipad',
+    title: 'NSRL Form',
+    description: 'Operator intake tool for Nike Sport Research Lab. Streamlined a multi-step form flow into a single-session iPad experience.',
+  },
+  {
+    label: 'MacBook',
+    spec: 'macbook',
+    title: 'Analytics Platform',
+    description: 'A data exploration dashboard for performance marketers. Reduced time-to-insight from 40 minutes to under 5.',
+  },
+  {
+    label: 'Desktop',
+    spec: 'desktop',
+    title: 'Design System',
+    description: 'A token-based design system built for scale. Shipped across 6 product surfaces with a team of 14 engineers.',
+  },
+  {
+    label: 'Desktop + iPhone',
+    spec: ['desktop', 'iphone'],
+    title: 'Omnichannel Returns',
+    description: 'End-to-end returns experience spanning desktop checkout and mobile confirmation. −9% return rate over 6 months.',
+  },
+  {
+    label: 'MacBook + iPhone',
+    spec: ['macbook', 'iphone'],
+    title: 'Loyalty Platform',
+    description: 'Cross-device loyalty program redesign. Unified web and mobile touchpoints into a single coherent experience.',
+  },
+  {
+    label: 'iPad + iPhone',
+    spec: ['ipad', 'iphone'],
+    title: 'Field Operations',
+    description: 'Companion tools for field teams — iPad as primary workstation, iPhone for quick status checks and approvals.',
+  },
 ];
 
 const cardExamples: { label: string; sub: string; spec: DeviceSpec }[] = [
@@ -102,7 +139,12 @@ export default function App() {
 
           {/* Hero mockup — overflow visible so 3D rotation never clips */}
           <div style={{ overflow: 'visible' }}>
-            <DeviceMockup devices={active.spec} size="hero" />
+            <DeviceMockup
+              devices={active.spec}
+              size="hero"
+              title={active.title}
+              description={active.description}
+            />
           </div>
         </div>
       </section>

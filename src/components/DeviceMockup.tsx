@@ -7,6 +7,8 @@ export type DeviceSpec = DeviceType | [DeviceType, DeviceType];
 export interface DeviceMockupProps {
   devices: DeviceSpec;
   size: DisplaySize;
+  title?: string;       // shown top-left in hero layout
+  description?: string; // shown below title in hero layout
   className?: string;
 }
 
@@ -271,30 +273,57 @@ function ScaledDevice({ device, size, role, animClass, animDelay = '0s', zIndex 
 /* ════════════════════════
    DeviceMockup — public API
    ════════════════════════ */
-export default function DeviceMockup({ devices, size, className = '' }: DeviceMockupProps) {
+export default function DeviceMockup({ devices, size, title, description, className = '' }: DeviceMockupProps) {
   const hero = size === 'hero';
+  const hasText = hero && (title || description);
+
   const isSingle = typeof devices === 'string';
-  const primaryType  = isSingle ? (devices as DeviceType) : devices[0];
+  const primaryType   = isSingle ? (devices as DeviceType) : devices[0];
   const secondaryType = isSingle ? null : devices[1];
 
-  const primaryScale    = getScale(primaryType, size, isSingle ? 'single' : 'primary');
+  const primaryScale     = getScale(primaryType, size, isSingle ? 'single' : 'primary');
   const primaryApparentW = NATURAL[primaryType].w * primaryScale;
 
-  // Horizontal nudge so primary sits slightly left and secondary overlaps right
+  // In single-column mode, nudge pairs left/right from center.
+  // In two-column mode, devices are centered within the right column (nudge = 0 base).
   const primaryNudge   = isSingle ? 0 : -Math.round(primaryApparentW * 0.18);
   const secondaryNudge = isSingle ? 0 :  Math.round(primaryApparentW * 0.32);
 
-  const containerH = hero
-    ? 'clamp(440px, 58vh, 580px)'
-    : size === 'card' ? '220px' : '220px';
+  const containerH = hero ? 'clamp(440px, 58vh, 580px)' : '220px';
 
-  const bloom = isSingle
-    ? `radial-gradient(ellipse 62% 58% at 50% 50%, rgba(245,74,56,0.09) 0%, rgba(80,100,200,0.05) 45%, #18181a 72%)`
-    : `radial-gradient(ellipse 80% 65% at 50% 50%, rgba(245,74,56,0.08) 0%, rgba(80,100,200,0.04) 50%, #18181a 75%)`;
+  const bloom = `radial-gradient(ellipse ${hasText ? '90% 80%' : '62% 58%'} at ${hasText ? '70%' : '50%'} 50%,
+    rgba(245,74,56,0.09) 0%,
+    rgba(80,100,200,0.05) 45%,
+    #18181a 72%)`;
 
-  const label = isSingle
+  const deviceLabel = isSingle
     ? DEVICE_LABELS[primaryType]
     : `${DEVICE_LABELS[primaryType]} · ${DEVICE_LABELS[secondaryType!]}`;
+
+  /* ── Device scene (shared between single-col and two-col) ── */
+  const DeviceScene = ({ column }: { column: boolean }) => (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <ScaledDevice
+        device={primaryType}
+        size={size}
+        role={isSingle ? 'single' : 'primary'}
+        animClass="device-float"
+        nudgeX={column ? primaryNudge : primaryNudge}
+        zIndex={2}
+      />
+      {secondaryType && (
+        <ScaledDevice
+          device={secondaryType}
+          size={size}
+          role="secondary"
+          animClass="device-float-subtle"
+          animDelay="-3s"
+          nudgeX={column ? secondaryNudge : secondaryNudge}
+          zIndex={3}
+        />
+      )}
+    </div>
+  );
 
   return (
     <div
@@ -303,14 +332,12 @@ export default function DeviceMockup({ devices, size, className = '' }: DeviceMo
         position: 'relative',
         width: '100%',
         height: containerH,
-        // overflow VISIBLE on outer — devices must not clip during 3D rotation
-        overflow: 'visible',
+        overflow: 'visible', // never clip 3D rotation
       }}
     >
-      {/* Background / vignette layer — clipped to container shape */}
+      {/* Background bloom — always full-width, clipped to shape */}
       <div style={{
-        position: 'absolute',
-        inset: 0,
+        position: 'absolute', inset: 0,
         borderRadius: hero ? 0 : 'var(--radius-card)',
         overflow: 'hidden',
         background: bloom,
@@ -319,48 +346,97 @@ export default function DeviceMockup({ devices, size, className = '' }: DeviceMo
         {hero && (
           <div style={{
             position: 'absolute', inset: 0,
-            background: 'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 42%, rgba(24,24,26,0.88) 100%)',
+            background: hasText
+              ? 'radial-gradient(ellipse 60% 100% at 100% 50%, transparent 30%, rgba(24,24,26,0.92) 80%)'
+              : 'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 42%, rgba(24,24,26,0.88) 100%)',
           }} />
         )}
       </div>
 
-      {/* Device scene — sits above background, no clip */}
-      <div style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
-        <ScaledDevice
-          device={primaryType}
-          size={size}
-          role={isSingle ? 'single' : 'primary'}
-          animClass="device-float"
-          nudgeX={primaryNudge}
-          zIndex={isSingle ? 2 : 2}
-        />
+      {hasText ? (
+        /* ── Two-column: text left · device right ── */
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', zIndex: 1 }}>
 
-        {secondaryType && (
-          <ScaledDevice
-            device={secondaryType}
-            size={size}
-            role="secondary"
-            animClass="device-float-subtle"
-            animDelay="-3s"
-            nudgeX={secondaryNudge}
-            zIndex={3}
-          />
-        )}
-      </div>
+          {/* Left: text */}
+          <div style={{
+            width: '40%',
+            flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            padding: 'clamp(1.5rem, 3vw, 3rem) clamp(1.5rem, 3vw, 2.5rem)',
+            gap: '1rem',
+            zIndex: 5,
+          }}>
+            {/* Accent rule */}
+            <div style={{ width: 32, height: 2, borderRadius: 1, backgroundColor: 'var(--color-accent)', flexShrink: 0 }} />
 
-      {/* Label */}
-      {hero && (
-        <div style={{
-          position: 'absolute', bottom: '1.25rem', left: 0, right: 0,
-          textAlign: 'center',
-          fontFamily: 'var(--font-data)',
-          fontSize: 'var(--text-data)',
-          color: 'var(--color-muted)',
-          letterSpacing: '0.07em',
-          textTransform: 'uppercase',
-          zIndex: 10,
-        }}>
-          {label}
+            {title && (
+              <h2 style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'clamp(1.5rem, 2.4vw, 2.25rem)',
+                fontWeight: 600,
+                lineHeight: 1.15,
+                color: 'var(--color-ink)',
+                margin: 0,
+                letterSpacing: '-0.02em',
+              }}>
+                {title}
+              </h2>
+            )}
+
+            {description && (
+              <p style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--text-body-sm)',
+                lineHeight: 1.65,
+                color: 'var(--color-muted)',
+                margin: 0,
+                maxWidth: '30ch',
+              }}>
+                {description}
+              </p>
+            )}
+
+            {/* Device label below description */}
+            <p style={{
+              fontFamily: 'var(--font-data)',
+              fontSize: 'var(--text-data)',
+              color: 'var(--color-rule)',
+              letterSpacing: '0.07em',
+              textTransform: 'uppercase',
+              margin: 0,
+              marginTop: '0.25rem',
+            }}>
+              {deviceLabel}
+            </p>
+          </div>
+
+          {/* Right: device */}
+          <div style={{ flex: 1, position: 'relative' }}>
+            <DeviceScene column />
+          </div>
+        </div>
+      ) : (
+        /* ── Single-column: device centered ── */
+        <div style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
+          <DeviceScene column={false} />
+
+          {/* Bottom label (no text column) */}
+          {hero && (
+            <div style={{
+              position: 'absolute', bottom: '1.25rem', left: 0, right: 0,
+              textAlign: 'center',
+              fontFamily: 'var(--font-data)',
+              fontSize: 'var(--text-data)',
+              color: 'var(--color-muted)',
+              letterSpacing: '0.07em',
+              textTransform: 'uppercase',
+              zIndex: 10,
+            }}>
+              {deviceLabel}
+            </div>
+          )}
         </div>
       )}
     </div>
