@@ -1,1 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
 @import 'tailwindcss';
+
+/* ── Design System Tokens ── */
+:root {
+  --color-paper: #18181a;
+  --color-ink: #ffffff;
+  --color-muted: #a3a3a3;
+  --color-accent: #f54a38;
+  --color-rule: #3a3a3c;
+
+  --font-display: 'Open Sans', sans-serif;
+  --font-body: 'Open Sans', sans-serif;
+  --font-data: 'Open Sans', sans-serif;
+
+  --text-display: clamp(2.75rem, 6vw, 4.5rem);
+  --text-title: clamp(1.35rem, 2vw, 1.75rem);
+  --text-body: 1.125rem;
+  --text-body-sm: 1rem;
+  --text-metric: clamp(1.75rem, 3vw, 2.5rem);
+  --text-data: 0.8125rem;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-page-x: clamp(1.5rem, 4.5vw, 3.5rem);
+  --space-section: clamp(4.5rem, 10vw, 8rem);
+
+  --radius-card: 1.25rem;
+  --radius-button: 999px;
+
+  --duration: 480ms;
+  --duration-fast: 200ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration: 1ms;
+    --duration-fast: 1ms;
+  }
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Device Float Animation ── */
+@keyframes device-float {
+  0%, 100% {
+    transform: perspective(1200px) rotateY(-5deg) rotateX(3deg) translateY(0px);
+  }
+  50% {
+    transform: perspective(1200px) rotateY(5deg) rotateX(-2deg) translateY(-10px);
+  }
+}
+
+@keyframes device-float-subtle {
+  0%, 100% {
+    transform: perspective(1200px) rotateY(-3deg) rotateX(2deg) translateY(0px);
+  }
+  50% {
+    transform: perspective(1200px) rotateY(3deg) rotateX(-1deg) translateY(-6px);
+  }
+}
+
+/* ── Screen Content Animations ── */
+@keyframes screen-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes accent-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+@keyframes cursor-sweep {
+  0% { transform: translateX(0); opacity: 0; }
+  10% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translateX(120%); opacity: 0; }
+}
+
+@keyframes bar-grow {
+  from { width: 0%; }
+  to { width: var(--bar-w, 70%); }
+}
+
+@keyframes fade-loop {
+  0%, 100% { opacity: 0; }
+  15%, 85% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .device-float,
+  .device-float-subtle {
+    animation: none !important;
+  }
+}
