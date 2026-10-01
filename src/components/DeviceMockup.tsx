@@ -321,7 +321,9 @@ function ScaledDevice({ device, size, role, animClass, animDelay = '0s', animDur
       <div style={{
         animation: `${animClass} ${animDuration} cubic-bezier(0.45,0,0.55,1) ${animDelay} infinite`,
         willChange: 'transform',
-        transformStyle: 'preserve-3d',
+        transformStyle: size === 'hero' ? 'preserve-3d' : 'flat',
+        backfaceVisibility: 'hidden',
+        WebkitBackfaceVisibility: 'hidden',
       }}>
         <Comp size={size} />
       </div>
