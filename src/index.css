@@ -36,6 +36,8 @@
 
   --duration: 480ms;
   --duration-fast: 200ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --target: 2.75rem;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -50,6 +52,85 @@ body {
   background-color: var(--color-paper);
   color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Portfolio-matching mode toggle (sun / moon) */
+.mode-toggle {
+  --mode-moon: #e6e6ff;
+  --mode-sun: var(--color-accent);
+  appearance: none;
+  background: transparent;
+  border: 0;
+  display: grid;
+  place-items: center;
+  width: var(--target);
+  height: var(--target);
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  flex-shrink: 0;
+}
+
+.mode-toggle:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
+.mode-toggle__icon {
+  --glyph: 1rem;
+  --size: var(--glyph);
+  --ray-fade: rgb(from var(--mode-sun) r g b / 0);
+  --ray-rest: 0 0 0 calc(var(--size) * -0.5 - 1px) var(--ray-fade);
+  width: var(--size);
+  height: var(--size);
+  border-radius: 999px;
+  color: var(--mode-moon);
+  translate: 0 -2px;
+  transform: scale(1);
+  box-shadow:
+    inset calc(var(--size) * 0.33) calc(var(--size) * -0.25) 0 0 var(--mode-moon),
+    var(--ray-rest),
+    var(--ray-rest),
+    var(--ray-rest),
+    var(--ray-rest),
+    var(--ray-rest),
+    var(--ray-rest),
+    var(--ray-rest),
+    var(--ray-rest);
+  transition:
+    transform var(--duration) var(--ease-standard),
+    translate var(--duration) var(--ease-standard),
+    width var(--duration) var(--ease-standard),
+    height var(--duration) var(--ease-standard),
+    box-shadow var(--duration) var(--ease-standard),
+    color var(--duration) var(--ease-standard);
+}
+
+html[data-mode="light"] .mode-toggle__icon {
+  translate: none;
+  --size: calc(var(--glyph) / 1.5);
+  --ray-size: calc(var(--size) * -0.4);
+  --offset-orthogonal: calc(var(--size) * 0.9);
+  --offset-diagonal: calc(var(--size) * 0.64);
+  transform: scale(0.75);
+  color: var(--mode-sun);
+  box-shadow:
+    inset 0 0 0 var(--size) var(--mode-sun),
+    calc(var(--offset-orthogonal) * -1) 0 0 var(--ray-size) var(--mode-sun),
+    var(--offset-orthogonal) 0 0 var(--ray-size) var(--mode-sun),
+    0 calc(var(--offset-orthogonal) * -1) 0 var(--ray-size) var(--mode-sun),
+    0 var(--offset-orthogonal) 0 var(--ray-size) var(--mode-sun),
+    calc(var(--offset-diagonal) * -1) calc(var(--offset-diagonal) * -1) 0 var(--ray-size) var(--mode-sun),
+    var(--offset-diagonal) var(--offset-diagonal) 0 var(--ray-size) var(--mode-sun),
+    calc(var(--offset-diagonal) * -1) var(--offset-diagonal) 0 var(--ray-size) var(--mode-sun),
+    var(--offset-diagonal) calc(var(--offset-diagonal) * -1) 0 var(--ray-size) var(--mode-sun);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mode-toggle__icon {
+    transition-duration: 1ms;
+  }
 }
 
 /* ── Hero float ── */
@@ -121,9 +202,9 @@ body {
 }
 
 @keyframes screen-scroll {
-  0%, 8%   { transform: translateY(0px); }
-  42%, 58% { transform: translateY(var(--scroll-dist, 0px)); }
-  92%, 100% { transform: translateY(0px); }
+  0%, 18%  { top: 0; }
+  52%, 68% { top: var(--scroll-dist, 0px); }
+  97%, 100% { top: 0; }
 }
 
 @keyframes fade-loop {

@@ -1,35 +1,52 @@
-# figma-make-app
+# Device Mockup Studio
 
-React + Vite + Tailwind CSS project running inside Figma Make.
+React + Vite + Tailwind CSS local tool for composing device mockups and exporting portfolio motion assets.
 
-## Development Server
+## Purpose
 
-A Vite development server is **already running** on `$PORT` (default 8443). You don't need to start it manually.
+Generate looping hero and card assets for [ericpowell.design](https://ericpowell.design) case studies. This app is a **local studio**, not a public Lab generator.
 
-- Preview URL: The user can access the running app through the preview panel
-- Hot reload: Changes to source files are reflected immediately
+## Workflow
 
-## Project Structure
+1. Pick a device config (single or pair).
+2. Upload a screenshot per device.
+3. Set an export slug (e.g. `nsrl-form`).
+4. Preview hero and card.
+5. **Export hero / card / both** — writes into `ericpowell.design/public/motion/`:
+   - `{slug}-{hero|card}.png` (poster)
+   - `{slug}-{hero|card}.webm` (or mp4 from MediaRecorder)
+   - `{slug}-{hero|card}.mp4` when WebM was recorded and ffmpeg.wasm can transcode
+   - Updates matching `src/content/work/{slug}.mdx` frontmatter (`motionHero`, `motionCard`, `motionDevices`) when that file exists
+6. Point work frontmatter at the base path if the slug is new (e.g. `/motion/nsrl-form-hero`).
 
-This is the canonical project structure. Start with task-relevant files below. Only follow imports or inspect other files when required, when a documented path is missing, or when the repository contradicts this guide.
+Hero exports are **device-only**. Title, description, and company mark are a live HTML layer in `StudyHero` on the portfolio (responsive overlay), not baked into the video.
 
-- `src/main.tsx` - React entrypoint; imports `src/index.css` and mounts `src/App.tsx` into the `#root` element
-- `src/App.tsx` - Primary application component and the usual starting point for UI work
-- `src/index.css` - Global CSS entrypoint and Tailwind CSS v4 import
-- `index.html` - Vite HTML shell containing the `#root` element and loading `src/main.tsx`
-- `package.json` - Project dependencies and the Vite build, development, preview, and formatting scripts
-- `vite.config.ts` - Vite configuration with React, Tailwind CSS v4, and Figma Make plugins plus the `@` alias for `src`
-- `.mise.toml` - Toolchain versions for Node.js and pnpm
+## Export sizes (2× desktop stages)
+
+- Hero: **2880 × 1152** (~2.5:1, matches 1440×576 stage)
+- Card: **1280 × 800** (~1.6:1)
+- Loop length: **72s** with screenshot scroll, else **7s**, at 30fps
+
+Portfolio stages stay fluid; videos use `object-fit: cover`.
+
+## Development
+
+```bash
+npm install
+npm run dev
+```
+
+## Project structure
+
+- `src/main.tsx` — entry
+- `src/App.tsx` — studio UI (compose, preview, export)
+- `src/components/DeviceMockup.tsx` — device frames + `screenImages` map
+- `src/components/ScreenContent.tsx` — placeholder UI or scrolling screenshot
+- `src/lib/exportRecording.ts` — poster + MediaRecorder + optional MP4 transcode
+- `src/index.css` — tokens and keyframes
 
 ## Dependencies
 
-- Runtime: React 19 and React DOM 19
-- Styling: Tailwind CSS v4 with the `@tailwindcss/vite` plugin
-- Build tooling: Vite 8, TypeScript 5.7, and `@vitejs/plugin-react`
-- Formatting: oxfmt
-
-## Styling
-
-This project uses **Tailwind CSS v4** through the `@tailwindcss/vite` plugin configured in `vite.config.ts`. `src/index.css` imports Tailwind with `@import 'tailwindcss';`. Use Tailwind utility classes directly in JSX and put global CSS or Tailwind v4 theme customization in `src/index.css`. This scaffold does not need a Tailwind config file or PostCSS config.
-
-`src/main.tsx` imports `src/index.css`, so global font wiring belongs in `src/index.css`. Keep CSS `@import` statements first, then add any `@font-face` rules and font-family defaults there.
+- Runtime: React 19
+- Styling: Tailwind CSS v4 via `@tailwindcss/vite`
+- Capture: `modern-screenshot`, `MediaRecorder`, optional `@ffmpeg/ffmpeg`

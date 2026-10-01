@@ -1,9 +1,13 @@
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import './device-mockup.css';
 import ScreenContent from './ScreenContent';
 
 export type DeviceType = 'iphone' | 'ipad' | 'macbook' | 'desktop';
 export type DisplaySize = 'card' | 'hero';
 export type DeviceSpec = DeviceType | [DeviceType, DeviceType];
+export type MockupMode = 'dark' | 'light' | 'auto';
+
+export type ScreenImages = Partial<Record<DeviceType, string>>;
 
 export interface DeviceMockupProps {
   devices: DeviceSpec;
@@ -11,10 +15,30 @@ export interface DeviceMockupProps {
   preLabel?: string;
   title?: string;
   description?: string;
+  /** @deprecated Prefer screenImages for per-device uploads */
   screenImage?: string;
-  animVariant?: 0 | 1 | 2 | 3;
+  screenImages?: ScreenImages;
+  animVariant?: 0 | 1 | 2 | 3; // unused — kept for call-site compatibility
   className?: string;
+  /** When true, omit title/description column (export stages) */
+  exportMode?: boolean;
+  /** Fill parent height (portfolio stages) instead of studio preview clamps */
+  fillStage?: boolean;
+  /** Stage appearance. `auto` follows `html[data-mode]` / prefers-color-scheme. */
+  mode?: MockupMode;
 }
+
+export const DEVICE_LABELS: Record<DeviceType, string> = {
+  iphone:  'iPhone',
+  ipad:    'iPad',
+  macbook: 'MacBook Pro',
+  desktop: 'Desktop',
+};
+
+export const EXPORT_SIZES = {
+  hero: { w: 2880, h: 1152 },
+  card: { w: 1280, h: 800 },
+} as const;
 
 /* ─────────────────────────────────────────────
    Natural dimensions for each device at 1×.
@@ -24,14 +48,15 @@ export interface DeviceMockupProps {
 const NATURAL: Record<DeviceType, { w: number; h: number }> = {
   iphone:  { w: 172, h: 373 },  // 390:844
   ipad:    { w: 258, h: 371 },  // 820:1180 portrait
-  macbook: { w: 432, h: 308 },  // screen 400×250 + hinge + body + shadow
-  desktop: { w: 382, h: 276 },  // screen 380×214 + neck + base + shadow
+  macbook: { w: 416, h: 380 },  // open clamshell footprint (lid = deck width)
+  desktop: { w: 382, h: 286 },  // screen 380×214 + neck + 3D foot + shadow
 };
 
-/* Target apparent height (px) per role × size */
+/* Target apparent height (px) per role × size.
+   Card targets stay clearly inside the media stage with breathing room. */
 const TARGET_H: Record<DisplaySize, Record<'single' | 'primary' | 'secondary', number>> = {
-  hero:  { single: 370, primary: 330, secondary: 250 },
-  card:  { single: 160, primary: 112, secondary: 80  }, // smaller for pairs to prevent clipping
+  hero:  { single: 620, primary: 520, secondary: 360 },
+  card:  { single: 360, primary: 280, secondary: 200 },
 };
 
 function getScale(device: DeviceType, size: DisplaySize, role: 'single' | 'primary' | 'secondary') {
@@ -39,40 +64,50 @@ function getScale(device: DeviceType, size: DisplaySize, role: 'single' | 'prima
 }
 
 /* ── Shared visuals ── */
-const aluminum = `linear-gradient(145deg, #2e2e30 0%, #242426 18%, #1c1c1e 38%, #181818 55%, #1e1e20 72%, #242426 88%, #2a2a2c 100%)`;
 const specular  = `1px solid rgba(255,255,255,0.13)`;
 const screenRecess = `inset 0 1px 4px rgba(0,0,0,0.9), inset 0 0 1px #000`;
-const glow = (c = 'rgba(100,140,255,0.12)') => `0 0 28px 3px ${c}`;
+const glow = (c = 'rgba(0,0,0,0.18)') => `0 0 28px 3px ${c}`;
 
+/** Drop shadow layers — offsets driven by --cast-* / --shadow-* from tilt lighting */
 function shadow(hero: boolean) {
   const d = hero;
   return [
-    `0 0 0 1px rgba(255,255,255,0.06)`,
-    `0 2px 6px rgba(0,0,0,0.95)`,
-    `0 ${d ? 20 : 10}px ${d ? 56 : 28}px rgba(0,0,0,0.75)`,
-    `0 ${d ? 52 : 26}px ${d ? 120 : 60}px rgba(0,0,0,0.55)`,
-    `0 ${d ? 100 : 50}px ${d ? 200 : 100}px rgba(0,0,0,0.3)`,
+    `0 0 0 1px rgba(255,255,255,var(--shadow-rim, 0.06))`,
+    `0 2px 6px rgba(0,0,0,var(--shadow-near, 0.55))`,
+    `var(--cast-x, 0px) calc(var(--cast-y, ${d ? 20 : 10}px) * 0.55) var(--cast-blur, ${d ? 56 : 28}px) rgba(0,0,0,var(--shadow-mid, 0.55))`,
+    `calc(var(--cast-x, 0px) * 1.4) var(--cast-y, ${d ? 52 : 26}px) calc(var(--cast-blur, ${d ? 120 : 60}px) * 1.35) rgba(0,0,0,var(--shadow-far, 0.42))`,
+    `calc(var(--cast-x, 0px) * 1.8) calc(var(--cast-y, ${d ? 100 : 50}px) * 1.15) calc(var(--cast-blur, ${d ? 200 : 100}px) * 1.6) rgba(0,0,0,var(--shadow-ambient, 0.28))`,
   ].join(', ');
 }
 
 /* ── Floor shadow beneath device ── */
 function FloorShadow({ w }: { w: number }) {
   return (
-    <div style={{
-      width: w * 0.65, height: 10, borderRadius: '50%',
-      background: 'rgba(0,0,0,0.45)', filter: 'blur(10px)',
-      margin: '0 auto',
-    }} />
+    <div
+      className="device-floor-shadow"
+      style={{
+        width: w * 0.65,
+        height: 10,
+        borderRadius: '50%',
+        margin: '0 auto',
+      }}
+    />
   );
 }
 
-/* ── Sheen overlay (specular highlight across face) ── */
+/* ── Sheen overlay (specular highlight — follows key light + tilt) ── */
 function Sheen({ radius }: { radius: number | string }) {
   return (
-    <div style={{
-      position: 'absolute', inset: 0, borderRadius: radius, pointerEvents: 'none',
-      background: 'linear-gradient(150deg, rgba(255,255,255,0.07) 0%, transparent 35%)',
-    }} />
+    <div
+      className="device-sheen"
+      style={{
+        position: 'absolute',
+        inset: 0,
+        borderRadius: radius,
+        pointerEvents: 'none',
+        zIndex: 6,
+      }}
+    />
   );
 }
 
@@ -100,7 +135,7 @@ function IPhone({ size, screenImage }: { size: DisplaySize; screenImage?: string
 
   return (
     <div style={{ position: 'relative', flexShrink: 0 }}>
-      <div style={{ width: W, height: H, borderRadius: R, background: aluminum, border: specular, boxShadow: shadow(false), position: 'relative' }}>
+      <div className="device-metal" style={{ width: W, height: H, borderRadius: R, border: specular, boxShadow: shadow(false), position: 'relative' }}>
 
         {/* Action button — left, top (small pill) */}
         <div style={{
@@ -141,7 +176,7 @@ function IPhone({ size, screenImage }: { size: DisplaySize; screenImage?: string
 
         {/* Screen recess — ultra-thin bezel */}
         <div style={{ position: 'absolute', inset: BW, borderRadius: R - BW, background: '#050507', boxShadow: screenRecess, overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', inset: 0, borderRadius: 'inherit', boxShadow: glow('rgba(120,160,255,0.1)'), zIndex: 5, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', inset: 0, borderRadius: 'inherit', boxShadow: glow('rgba(0,0,0,0.16)'), zIndex: 5, pointerEvents: 'none' }} />
           {/* Dynamic Island — thinner pill */}
           <div style={{
             position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
@@ -170,7 +205,7 @@ function IPad({ size, screenImage }: { size: DisplaySize; screenImage?: string }
 
   return (
     <div style={{ position: 'relative', flexShrink: 0 }}>
-      <div style={{ width: W, height: H, borderRadius: R, background: aluminum, border: specular, boxShadow: shadow(false), position: 'relative' }}>
+      <div className="device-metal" style={{ width: W, height: H, borderRadius: R, border: specular, boxShadow: shadow(false), position: 'relative' }}>
         {/* FaceID / camera pill — centered top bezel */}
         <div style={{
           position: 'absolute', top: 4, left: '50%', transform: 'translateX(-50%)',
@@ -205,44 +240,207 @@ function IPad({ size, screenImage }: { size: DisplaySize; screenImage?: string }
 }
 
 function MacBook({ size, screenImage }: { size: DisplaySize; screenImage?: string }) {
-  const screenW = 400, screenH = 250;
-  const bodyW = 432, bodyH = 20;
-  const R = 10, BW = 11;
-  const notchW = 64, notchH = 13;
+  const screenW = 416;
+  const screenH = 260;
+  // Match lid width at the hinge — a wider deck reads as a flare under perspective
+  const baseW = screenW;
+  const baseD = 275; // pre-rotation deck depth
+  const bodyT = 12;  // front chin extrusion only (no side faces — they glitch under scene tilt)
+  const R = 11;
+  const BW = 11;
+  const notchW = 66;
+  const notchH = 13;
+  const hingeY = screenH + 2;
+  // Nested 3D clamshell — lid tips back, deck tips toward camera
+  const lidOpen = -13;
+  const deckAngle = 66;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
-      {/* Lid */}
-      <div style={{ width: screenW, height: screenH, borderRadius: `${R}px ${R}px 0 0`, background: aluminum, border: specular, borderBottom: '1px solid rgba(0,0,0,0.6)', boxShadow: shadow(false), position: 'relative' }}>
-        {/* Apple logo hint */}
-        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 20, height: 20, borderRadius: '30% 30% 30% 30%/35% 35% 25% 25%', background: 'rgba(255,255,255,0.03)' }} />
+    <div style={{
+      position: 'relative',
+      width: baseW,
+      height: 380,
+      flexShrink: 0,
+      transformStyle: 'preserve-3d',
+    }}>
+      {/* ── Keyboard deck ── */}
+      <div style={{
+        position: 'absolute',
+        left: 0,
+        top: hingeY,
+        width: baseW,
+        height: baseD,
+        transformOrigin: 'top center',
+        transform: `rotateX(${deckAngle}deg)`,
+        transformStyle: 'preserve-3d',
+      }}>
+        {/* Top surface */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          background: `
+            linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 11%),
+            linear-gradient(168deg, #303034 0%, #242428 36%, #1a1a1e 72%, #141416 100%)
+          `,
+          borderRadius: '2px 2px 16px 16px',
+          border: specular,
+          borderTop: '1px solid rgba(0,0,0,0.8)',
+          boxShadow: '0 20px 44px rgba(0,0,0,0.52)',
+          overflow: 'hidden',
+        }}>
+          {/* Lid cast near hinge */}
+          <div aria-hidden style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 48,
+            background: 'linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.15) 55%, transparent 100%)',
+            pointerEvents: 'none',
+          }} />
 
-        {/* Notch */}
-        <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: notchW, height: notchH, background: '#0a0a0c', borderRadius: `0 0 7px 7px`, zIndex: 10 }} />
+          {/* Keyboard well — soft rows */}
+          <div style={{
+            position: 'absolute',
+            top: 18,
+            left: 26,
+            right: 26,
+            height: 122,
+            borderRadius: 7,
+            background: 'linear-gradient(180deg, #0c0c0e 0%, #101012 100%)',
+            boxShadow: 'inset 0 2px 5px rgba(0,0,0,0.85), inset 0 0 0 1px rgba(255,255,255,0.035)',
+            overflow: 'hidden',
+          }}>
+            {[0, 1, 2, 3, 4].map((row) => (
+              <div
+                key={row}
+                style={{
+                  position: 'absolute',
+                  left: row === 4 ? 34 : 9,
+                  right: row === 4 ? 34 : 9,
+                  top: 11 + row * 21,
+                  height: 14,
+                  borderRadius: 3,
+                  background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.018) 100%)',
+                  boxShadow: 'inset 0 -1px 0 rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.025)',
+                }}
+              />
+            ))}
+          </div>
 
-        <div style={{ position: 'absolute', inset: BW, borderRadius: R - BW, background: '#0a0a0c', boxShadow: screenRecess, overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', inset: 0, borderRadius: 'inherit', boxShadow: glow('rgba(100,140,255,0.1)'), zIndex: 5, pointerEvents: 'none' }} />
-          <ScreenContent variant="desktop" size={size} image={screenImage} />
+          {/* Trackpad */}
+          <div style={{
+            position: 'absolute',
+            bottom: 22,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 122,
+            height: 78,
+            borderRadius: 9,
+            background: 'linear-gradient(180deg, #242428 0%, #1a1a1e 100%)',
+            boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.07), inset 0 2px 4px rgba(0,0,0,0.5)',
+          }} />
+
+          {/* Palm sheen */}
+          <div aria-hidden style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: 'inherit',
+            background: 'linear-gradient(150deg, rgba(255,255,255,0.055) 0%, transparent 40%)',
+            pointerEvents: 'none',
+          }} />
         </div>
-        <Sheen radius={`${R}px ${R}px 0 0`} />
+
+        {/* Front chin — extruded face for unibody thickness */}
+        <div style={{
+          position: 'absolute',
+          left: 1,
+          right: 1,
+          bottom: 0,
+          height: bodyT,
+          transformOrigin: 'top center',
+          transform: 'rotateX(-90deg)',
+          background: 'linear-gradient(180deg, #2a2a2e 0%, #151517 50%, #0a0a0c 100%)',
+          borderRadius: '0 0 4px 4px',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.13)',
+        }} />
       </div>
 
-      {/* Hinge */}
-      <div style={{ width: screenW, height: 3, background: 'linear-gradient(180deg,#000,#0a0a0a)', boxShadow: '0 2px 6px rgba(0,0,0,0.9)', flexShrink: 0 }} />
-
-      {/* Keyboard body */}
-      <div style={{ width: bodyW, height: bodyH, background: 'linear-gradient(180deg,#1e1e20 0%,#161618 100%)', borderRadius: `0 0 6px 6px`, border: specular, borderTop: '1px solid rgba(0,0,0,0.5)', position: 'relative', boxShadow: '0 6px 30px rgba(0,0,0,0.7)', flexShrink: 0 }}>
-        {/* Key rows */}
-        <div style={{ position: 'absolute', top: 4, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 2 }}>
-          {Array.from({ length: 14 }).map((_, i) => (
-            <div key={i} style={{ width: 9, height: 6, borderRadius: 1.5, background: 'linear-gradient(180deg,#2a2a2c,#222224)', boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.04),0 1px 2px rgba(0,0,0,0.8)' }} />
-          ))}
+      {/* ── Lid ── */}
+      <div style={{
+        position: 'absolute',
+        left: (baseW - screenW) / 2,
+        top: hingeY - screenH,
+        width: screenW,
+        height: screenH,
+        transformOrigin: 'bottom center',
+        transform: `rotateX(${lidOpen}deg) translateZ(5px)`,
+        transformStyle: 'preserve-3d',
+        zIndex: 3,
+      }}>
+        <div
+          className="device-metal"
+          style={{
+            width: screenW,
+            height: screenH,
+            borderRadius: `${R}px ${R}px 3px 3px`,
+            border: specular,
+            borderBottom: '1px solid rgba(0,0,0,0.8)',
+            boxShadow: shadow(false),
+            position: 'relative',
+          }}
+        >
+          <div style={{
+            position: 'absolute',
+            inset: BW,
+            borderRadius: R - BW,
+            background: '#0a0a0c',
+            boxShadow: screenRecess,
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: notchW,
+              height: notchH,
+              background: '#000',
+              borderRadius: '0 0 7px 7px',
+              zIndex: 10,
+              boxShadow: '0 1px 0 rgba(255,255,255,0.04)',
+            }} />
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              borderRadius: 'inherit',
+              boxShadow: glow('rgba(0,0,0,0.16)'),
+              zIndex: 5,
+              pointerEvents: 'none',
+            }} />
+            <ScreenContent variant="desktop" size={size} image={screenImage} />
+          </div>
+          <Sheen radius={`${R}px ${R}px 3px 3px`} />
         </div>
-        {/* Trackpad */}
-        <div style={{ position: 'absolute', bottom: 3, left: '50%', transform: 'translateX(-50%)', width: 80, height: 46, borderRadius: 5, background: 'linear-gradient(160deg,#1e1e20,#161618)', border: '1px solid rgba(255,255,255,0.05)', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.6)' }} />
       </div>
 
-      <FloorShadow w={bodyW} />
+      {/* Hinge — bridges lid and deck */}
+      <div style={{
+        position: 'absolute',
+        left: 8,
+        right: 8,
+        top: hingeY - 4,
+        height: 9,
+        borderRadius: 4.5,
+        background: 'linear-gradient(180deg, #2c2c30 0%, #101012 48%, #1c1c20 100%)',
+        boxShadow: '0 3px 7px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -1px 0 rgba(0,0,0,0.75)',
+        transform: 'translateZ(7px)',
+        zIndex: 5,
+      }} />
+
+      <div style={{ position: 'absolute', left: '50%', bottom: 4, transform: 'translateX(-50%)', zIndex: 0 }}>
+        <FloorShadow w={baseW * 0.94} />
+      </div>
     </div>
   );
 }
@@ -250,28 +448,119 @@ function MacBook({ size, screenImage }: { size: DisplaySize; screenImage?: strin
 function DesktopMonitor({ size, screenImage }: { size: DisplaySize; screenImage?: string }) {
   const screenW = 380, screenH = 214;
   const R = 8, BW = 9;
-  const neckW = 28, neckH = 34;
-  const baseW = 160, baseH = 10;
+  const neckW = 26, neckH = 30;
+  const baseW = 168;
+  const footH = 26; // layout footprint for the foreshortened plate
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
-      <div style={{ width: screenW, height: screenH, borderRadius: R, background: aluminum, border: specular, boxShadow: shadow(false), position: 'relative' }}>
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      flexShrink: 0,
+      transformStyle: 'preserve-3d',
+    }}>
+      <div className="device-metal" style={{ width: screenW, height: screenH, borderRadius: R, border: specular, boxShadow: shadow(false), position: 'relative' }}>
         <div style={{ position: 'absolute', top: 5, left: '50%', transform: 'translateX(-50%)', width: 6, height: 6, borderRadius: '50%', background: '#0a0a0c', boxShadow: '0 0 0 1px rgba(255,255,255,0.05)' }} />
 
         <div style={{ position: 'absolute', inset: BW, borderRadius: R - BW, background: '#0a0a0c', boxShadow: screenRecess, overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', inset: 0, borderRadius: 'inherit', boxShadow: glow('rgba(100,140,255,0.1)'), zIndex: 5, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', inset: 0, borderRadius: 'inherit', boxShadow: glow('rgba(0,0,0,0.16)'), zIndex: 5, pointerEvents: 'none' }} />
           <ScreenContent variant="desktop" size={size} image={screenImage} />
         </div>
         <Sheen radius={R} />
       </div>
 
-      {/* Neck */}
-      <div style={{ width: neckW, height: neckH, background: 'linear-gradient(180deg,#1e1e20,#161618)', borderLeft: '1px solid rgba(255,255,255,0.05)', borderRight: '1px solid rgba(0,0,0,0.5)', flexShrink: 0 }} />
+      {/* Neck — cylindrical stem with side lighting */}
+      <div style={{
+        position: 'relative',
+        width: neckW,
+        height: neckH,
+        flexShrink: 0,
+        zIndex: 2,
+        background: 'linear-gradient(90deg, #101012 0%, #2a2a2e 28%, #1c1c20 52%, #121214 100%)',
+        borderRadius: '0 0 4px 4px',
+        boxShadow: 'inset 1px 0 0 rgba(255,255,255,0.07), inset -1px 0 0 rgba(0,0,0,0.55)',
+      }}>
+        {/* Stem highlight ridge */}
+        <div aria-hidden style={{
+          position: 'absolute',
+          inset: '10% 38% 8% 38%',
+          borderRadius: 2,
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%)',
+          pointerEvents: 'none',
+        }} />
+        {/* Joint collar into the foot */}
+        <div aria-hidden style={{
+          position: 'absolute',
+          left: -3,
+          right: -3,
+          bottom: -2,
+          height: 7,
+          borderRadius: 3,
+          background: 'linear-gradient(180deg, #2e2e32 0%, #18181a 100%)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.12), 0 2px 4px rgba(0,0,0,0.45)',
+          zIndex: 1,
+        }} />
+      </div>
 
-      {/* Base */}
-      <div style={{ width: baseW, height: baseH, borderRadius: baseH, background: 'linear-gradient(180deg,#222224,#181818)', border: specular, boxShadow: '0 3px 14px rgba(0,0,0,0.6)', flexShrink: 0 }} />
+      {/* Foot — oval desk plate with visible thickness */}
+      <div style={{
+        position: 'relative',
+        width: baseW,
+        height: footH,
+        flexShrink: 0,
+        transformStyle: 'preserve-3d',
+        marginTop: 2,
+        zIndex: 1,
+      }}>
+        {/* Top plane (foreshortened toward camera) */}
+        <div style={{
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          width: baseW,
+          height: 54,
+          transformOrigin: 'center top',
+          transform: 'rotateX(74deg)',
+          borderRadius: '50%',
+          background: `
+            radial-gradient(ellipse 55% 48% at 38% 32%, rgba(255,255,255,0.16) 0%, transparent 52%),
+            radial-gradient(ellipse 80% 70% at 50% 60%, #1a1a1e 0%, #101012 100%),
+            linear-gradient(180deg, #323236 0%, #222226 40%, #141416 100%)
+          `,
+          border: '1px solid rgba(255,255,255,0.11)',
+          boxShadow: `
+            inset 0 1px 0 rgba(255,255,255,0.16),
+            inset 0 -8px 14px rgba(0,0,0,0.35),
+            0 10px 22px rgba(0,0,0,0.4)
+          `,
+        }} />
+        {/* Front rim — extruded thickness under the near edge */}
+        <div aria-hidden style={{
+          position: 'absolute',
+          left: '10%',
+          right: '10%',
+          top: 12,
+          height: 8,
+          borderRadius: '0 0 50% 50%',
+          background: 'linear-gradient(180deg, #2c2c30 0%, #161618 42%, #0a0a0c 100%)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), 0 3px 8px rgba(0,0,0,0.55)',
+        }} />
+        {/* Contact shade tucked under the rim */}
+        <div aria-hidden style={{
+          position: 'absolute',
+          left: '14%',
+          right: '14%',
+          top: 17,
+          height: 6,
+          borderRadius: '50%',
+          background: 'rgba(0,0,0,0.45)',
+          filter: 'blur(3px)',
+          pointerEvents: 'none',
+        }} />
+      </div>
 
-      <FloorShadow w={baseW} />
+      <FloorShadow w={baseW * 0.92} />
     </div>
   );
 }
@@ -284,79 +573,262 @@ const DEVICE_MAP: Record<DeviceType, React.ComponentType<{ size: DisplaySize; sc
   desktop: DesktopMonitor,
 };
 
-const DEVICE_LABELS: Record<DeviceType, string> = {
-  iphone:  'iPhone 15 Pro',
-  ipad:    'iPad',
-  macbook: 'MacBook Pro 16"',
-  desktop: 'Desktop Monitor',
-};
-
 /* ── Scaled device wrapper ── */
 interface ScaledDeviceProps {
   device: DeviceType;
   size: DisplaySize;
   role: 'single' | 'primary' | 'secondary';
-  animClass: string;
-  animDelay?: string;
-  animDuration?: string;
   zIndex?: number;
   nudgeX?: number;
   screenImage?: string;
 }
 
-function ScaledDevice({ device, size, role, animClass, animDelay = '0s', animDuration = '7s', zIndex = 1, nudgeX = 0, screenImage }: ScaledDeviceProps) {
+function ScaledDevice({ device, size, role, zIndex = 1, nudgeX = 0, screenImage }: ScaledDeviceProps) {
   const scale = getScale(device, size, role);
   const Comp = DEVICE_MAP[device];
   const nat = NATURAL[device];
-
-  const centered = size === 'card';
+  // Card: slight lift so laptop/desktop bases clip first and screens stay dominant.
+  // Hero: keep a modest lift for floor-shadow room.
+  const nudgeY = size === 'hero' ? -28 : -16;
 
   return (
     <div style={{
       position: 'absolute',
-      ...(centered
-        ? { top: '50%', left: '50%', transform: `translate(calc(-50% + ${nudgeX}px), -50%) scale(${scale})`, transformOrigin: 'center center' }
-        : { bottom: 0,  left: '50%', transform: `translateX(calc(-50% + ${nudgeX}px)) scale(${scale})`,        transformOrigin: 'center bottom' }
-      ),
+      top: '50%',
+      left: '50%',
+      transform: `translate(calc(-50% + ${nudgeX}px), calc(-50% + ${nudgeY}px)) scale(${scale})`,
+      transformOrigin: 'center center',
+      transformStyle: 'preserve-3d',
       width: nat.w,
       zIndex,
     }}>
-      <div style={{
-        animation: `${animClass} ${animDuration} cubic-bezier(0.45,0,0.55,1) ${animDelay} infinite`,
-        willChange: 'transform',
-        transformStyle: size === 'hero' ? 'preserve-3d' : 'flat',
-        backfaceVisibility: 'hidden',
-        WebkitBackfaceVisibility: 'hidden',
-      }}>
-        <Comp size={size} screenImage={screenImage} />
-      </div>
+      <Comp size={size} screenImage={screenImage} />
     </div>
   );
 }
 
-/* ════════════════════════
-   DeviceMockup — public API
-   ════════════════════════ */
-const CARD_ANIMS = [
-  { name: 'device-card-a', delay: '0s',    duration: '6.5s' },
-  { name: 'device-card-b', delay: '-2.1s', duration: '7.2s' },
-  { name: 'device-card-c', delay: '-4.3s', duration: '8s'   },
-  { name: 'device-card-d', delay: '-1.6s', duration: '5.8s' },
-];
+function resolveImage(
+  device: DeviceType,
+  screenImages?: ScreenImages,
+  screenImage?: string,
+) {
+  return screenImages?.[device] ?? screenImage;
+}
 
-export default function DeviceMockup({ devices, size, preLabel, title, description, screenImage, animVariant = 0, className = '' }: DeviceMockupProps) {
+const REST = {
+  hero: { rotateY: -8, rotateX: 4, perspective: 900 },
+  card: { rotateY: -4, rotateX: 2, perspective: 700 },
+} as const;
+
+const TILT_RANGE = {
+  hero: { y: 14, x: 8 },
+  card: { y: 10, x: 6 },
+} as const;
+
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setReduced(mq.matches);
+    const onChange = () => setReduced(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return reduced;
+}
+
+function readDocumentMode(): 'dark' | 'light' {
+  const attr = document.documentElement.getAttribute('data-mode');
+  if (attr === 'light' || attr === 'dark') return attr;
+  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+
+function useResolvedMockupMode(mode: MockupMode): 'dark' | 'light' {
+  const [resolved, setResolved] = useState<'dark' | 'light'>(() => {
+    if (mode === 'light' || mode === 'dark') return mode;
+    if (typeof document === 'undefined') return 'dark';
+    return readDocumentMode();
+  });
+
+  useEffect(() => {
+    if (mode === 'light' || mode === 'dark') {
+      setResolved(mode);
+      return;
+    }
+    const sync = () => setResolved(readDocumentMode());
+    sync();
+    const obs = new MutationObserver(sync);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-mode'] });
+    const mq = window.matchMedia('(prefers-color-scheme: light)');
+    mq.addEventListener('change', sync);
+    return () => {
+      obs.disconnect();
+      mq.removeEventListener('change', sync);
+    };
+  }, [mode]);
+
+  return resolved;
+}
+
+const STAGE = {
+  dark: {
+    // Charcoal — deep, but above pure black so cast shadows still read
+    base: '#1f1f22',
+    bloomPeak: 'rgba(0,0,0,0.18)',
+    bloomMid: 'rgba(0,0,0,0.06)',
+    scrim: 'rgba(31,31,34,0.9)',
+    scrimSide: 'rgba(31,31,34,0.94)',
+  },
+  light: {
+    base: '#ffffff',
+    bloomPeak: '#ffffff',
+    bloomMid: '#ffffff',
+    scrim: 'rgba(255,255,255,0.9)',
+    scrimSide: 'rgba(255,255,255,0.94)',
+  },
+} as const;
+
+/**
+ * Overdamped exponential follow — no spring velocity, so no overshoot/jerk.
+ * Rates are per ~16.7ms frame; tick scales by real dt.
+ */
+const AIM_RATE = 0.045;
+const FOLLOW_RATE = 0.032;
+const LIFT_RATE = 0.025;
+const HOME_AIM_RATE = 0.022;
+const HOME_FOLLOW_RATE = 0.016;
+const HOME_LIFT_RATE = 0.02;
+const REST_RETURN_DELAY_MS = 1100;
+const SETTLE_EPS = 0.008;
+
+const DeviceScene = memo(function DeviceScene({
+  primaryType,
+  secondaryType,
+  size,
+  isSingle,
+  primaryNudge,
+  secondaryNudge,
+  primaryImage,
+  secondaryImage,
+  perspective,
+  tiltRef,
+  interactive,
+}: {
+  primaryType: DeviceType;
+  secondaryType: DeviceType | null;
+  size: DisplaySize;
+  isSingle: boolean;
+  primaryNudge: number;
+  secondaryNudge: number;
+  primaryImage?: string;
+  secondaryImage?: string;
+  perspective: number;
+  tiltRef: React.RefObject<HTMLDivElement | null>;
+  interactive: boolean;
+}) {
+  // Intentionally no `transform` in React style — rAF owns it exclusively.
+  // Putting rest pose here made React snap the node back on every re-render.
+  return (
+    <div
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        perspective,
+        perspectiveOrigin: '50% 45%',
+      }}
+    >
+      <div
+        ref={tiltRef}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          transformStyle: 'preserve-3d',
+          willChange: interactive ? 'transform' : undefined,
+        }}
+      >
+        <ScaledDevice
+          device={primaryType}
+          size={size}
+          role={isSingle ? 'single' : 'primary'}
+          nudgeX={primaryNudge}
+          zIndex={2}
+          screenImage={primaryImage}
+        />
+        {secondaryType && (
+          <ScaledDevice
+            device={secondaryType}
+            size={size}
+            role="secondary"
+            nudgeX={secondaryNudge}
+            zIndex={3}
+            screenImage={secondaryImage}
+          />
+        )}
+      </div>
+    </div>
+  );
+});
+
+export default function DeviceMockup({
+  devices,
+  size,
+  title,
+  description,
+  screenImage,
+  screenImages,
+  className = '',
+  exportMode = false,
+  fillStage = false,
+  mode = 'auto',
+}: DeviceMockupProps) {
   const hero = size === 'hero';
-  const hasText = hero && (title || description);
+  const hasText = hero && !!(title || description);
+  const reducedMotion = usePrefersReducedMotion();
+  const interactive = !exportMode && !reducedMotion;
+  const resolvedMode = useResolvedMockupMode(mode);
+  const stage = STAGE[resolvedMode];
+  const modeRef = useRef(resolvedMode);
+  modeRef.current = resolvedMode;
+
+  const rest = REST[size];
+  const range = TILT_RANGE[size];
+  const stageRef = useRef<HTMLDivElement>(null);
+  const tiltRef = useRef<HTMLDivElement>(null);
+  const tilt = useRef({
+    curY: REST[size].rotateY as number,
+    curX: REST[size].rotateX as number,
+    curZ: 0,
+    aimY: REST[size].rotateY as number,
+    aimX: REST[size].rotateX as number,
+    aimZ: 0,
+    rawY: REST[size].rotateY as number,
+    rawX: REST[size].rotateX as number,
+    rawZ: 0,
+    raf: 0 as number,
+    lastTs: 0,
+    homing: false,
+  });
+  const homeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearHomeTimer = useCallback(() => {
+    if (homeTimerRef.current != null) {
+      clearTimeout(homeTimerRef.current);
+      homeTimerRef.current = null;
+    }
+  }, []);
 
   const isSingle = typeof devices === 'string';
   const primaryType   = isSingle ? (devices as DeviceType) : devices[0];
   const secondaryType = isSingle ? null : devices[1];
+  const primaryImage = resolveImage(primaryType, screenImages, screenImage);
+  const secondaryImage = secondaryType
+    ? resolveImage(secondaryType, screenImages, screenImage)
+    : undefined;
 
   const primaryScale     = getScale(primaryType, size, isSingle ? 'single' : 'primary');
   const primaryApparentW = NATURAL[primaryType].w * primaryScale;
 
-  // Nudge calculation — hero uses a cinematic asymmetric offset;
-  // card uses geometry-based centering so the pair is always visually centered.
   let primaryNudge = 0;
   let secondaryNudge = 0;
   if (!isSingle) {
@@ -364,94 +836,216 @@ export default function DeviceMockup({ devices, size, preLabel, title, descripti
       primaryNudge  = -Math.round(primaryApparentW * 0.18);
       secondaryNudge =  Math.round(primaryApparentW * 0.32);
     } else {
-      // Compute each device's apparent width at card scale, then
-      // derive nudges that place the pair's visual center at container center.
+      // Card pairs: small gap so both devices stay readable
       const secScale = getScale(secondaryType!, size, 'secondary');
       const secApparentW = NATURAL[secondaryType!].w * secScale;
-      const gap = 10; // px gap between the two devices
-      // primaryNudge = -(secApparentW + gap) / 2  (shifts primary left by half of secondary+gap)
-      // secondaryNudge = (primaryApparentW + gap) / 2  (shifts secondary right by half of primary+gap)
-      // These ensure: primary_right_edge == secondary_left_edge - gap, pair centered at 0.
+      const gap = 6;
       primaryNudge  = -Math.round((secApparentW + gap) / 2);
       secondaryNudge =  Math.round((primaryApparentW + gap) / 2);
     }
   }
 
-  const containerH = hero ? 'clamp(440px, 58vh, 580px)' : '280px';
-  const cardAnim = CARD_ANIMS[animVariant];
+  const containerH = exportMode || fillStage
+    ? '100%'
+    : hero
+      ? 'clamp(700px, 78vh, 820px)'
+      : '520px';
 
   const bloom = `radial-gradient(ellipse ${hasText ? '90% 80%' : '62% 58%'} at ${hasText ? '70%' : '50%'} 50%,
-    rgba(245,74,56,0.09) 0%,
-    rgba(80,100,200,0.05) 45%,
-    #18181a 72%)`;
+    ${stage.bloomPeak} 0%,
+    ${stage.bloomMid} 42%,
+    ${stage.base} 72%)`;
 
-  const deviceLabel = isSingle
-    ? DEVICE_LABELS[primaryType]
-    : `${DEVICE_LABELS[primaryType]} · ${DEVICE_LABELS[secondaryType!]}`;
+  const paintTilt = useCallback(() => {
+    const t = tilt.current;
+    const el = tiltRef.current;
+    if (!el) return;
 
-  /* ── Device scene (shared between single-col and two-col) ── */
-  const DeviceScene = ({ column }: { column: boolean }) => (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-      <ScaledDevice
-        device={primaryType}
-        size={size}
-        role={isSingle ? 'single' : 'primary'}
-        animClass={hero ? 'device-float' : cardAnim.name}
-        animDelay={hero ? '0s' : cardAnim.delay}
-        animDuration={hero ? '7s' : cardAnim.duration}
-        nudgeX={column ? primaryNudge : primaryNudge}
-        zIndex={2}
-        screenImage={screenImage}
-      />
-      {secondaryType && (
-        <ScaledDevice
-          device={secondaryType}
-          size={size}
-          role="secondary"
-          animClass={hero ? 'device-float' : cardAnim.name}
-          animDelay={hero ? '-3s' : `calc(${cardAnim.delay} - 1.8s)`}
-          animDuration={hero ? '7s' : cardAnim.duration}
-          nudgeX={column ? secondaryNudge : secondaryNudge}
-          zIndex={3}
-          screenImage={screenImage}
-        />
-      )}
-    </div>
-  );
+    el.style.transform =
+      `rotateY(${t.curY.toFixed(3)}deg) rotateX(${t.curX.toFixed(3)}deg) translateZ(${t.curZ.toFixed(2)}px)`;
+
+    // Key light sits upper-left; remap tilt into [-1, 1] vs rest pose
+    const nx = Math.max(-1, Math.min(1, (t.curY - rest.rotateY) / Math.max(range.y, 1)));
+    const ny = Math.max(-1, Math.min(1, (t.curX - rest.rotateX) / Math.max(range.x, 1)));
+    const light = modeRef.current === 'light';
+    const sheenBoost = light ? 0.012 : 0;
+
+    const sheenAngle = 148 - nx * 52 + ny * 24;
+    const sheenX = 30 - nx * 26;
+    const sheenY = 20 + ny * 18;
+    const sheenStrength = 0.028 + (1 - Math.abs(nx) * 0.4) * 0.022 + sheenBoost;
+    const sheenFalloff = 30 + Math.abs(nx) * 12 + Math.abs(ny) * 6;
+    const metalAngle = 145 - nx * 28 + ny * 12;
+    const rimOpacity = 0.02 + Math.max(0, nx) * 0.025 + Math.max(0, -ny) * 0.015;
+
+    const castX = 6 - nx * 18;
+    const castY = (hero ? 22 : 12) + ny * 12 + t.curZ * 0.35;
+    const castBlur = (hero ? 56 : 30) + Math.abs(nx) * 22 + Math.abs(ny) * 10;
+
+    const floorOx = -nx * 16;
+    const floorOy = 2 + ny * 6;
+    const floorSx = 1 + Math.abs(nx) * 0.22;
+    const floorOpacity = light
+      ? 0.05 + Math.abs(nx) * 0.03 + Math.max(0, ny) * 0.02
+      : 0.28 + Math.abs(nx) * 0.14 + Math.max(0, ny) * 0.08;
+    const floorBlur = (light ? 10 : 12) + Math.abs(nx) * 5 + Math.abs(ny) * 2;
+
+    el.style.setProperty('--sheen-angle', `${sheenAngle.toFixed(1)}deg`);
+    el.style.setProperty('--sheen-x', `${sheenX.toFixed(1)}%`);
+    el.style.setProperty('--sheen-y', `${sheenY.toFixed(1)}%`);
+    el.style.setProperty('--sheen-strength', sheenStrength.toFixed(3));
+    el.style.setProperty('--sheen-falloff', `${sheenFalloff.toFixed(1)}%`);
+    el.style.setProperty('--metal-angle', `${metalAngle.toFixed(1)}deg`);
+    el.style.setProperty('--rim-opacity', rimOpacity.toFixed(3));
+    el.style.setProperty('--cast-x', `${castX.toFixed(1)}px`);
+    el.style.setProperty('--cast-y', `${castY.toFixed(1)}px`);
+    el.style.setProperty('--cast-blur', `${castBlur.toFixed(1)}px`);
+    el.style.setProperty('--shadow-rim', light ? '0' : '0.06');
+    el.style.setProperty('--shadow-near', light ? '0.05' : '0.55');
+    el.style.setProperty('--shadow-mid', light ? '0.06' : '0.55');
+    el.style.setProperty('--shadow-far', light ? '0.035' : '0.42');
+    el.style.setProperty('--shadow-ambient', light ? '0.018' : '0.28');
+    el.style.setProperty('--floor-ox', `${floorOx.toFixed(1)}px`);
+    el.style.setProperty('--floor-oy', `${floorOy.toFixed(1)}px`);
+    el.style.setProperty('--floor-sx', floorSx.toFixed(3));
+    el.style.setProperty('--floor-opacity', floorOpacity.toFixed(3));
+    el.style.setProperty('--floor-blur', `${floorBlur.toFixed(1)}px`);
+  }, [hero, range.x, range.y, rest.rotateX, rest.rotateY]);
+
+  const startTiltLoop = useCallback(() => {
+    if (!interactive || tilt.current.raf) return;
+    const tick = (ts: number) => {
+      const t = tilt.current;
+      const last = t.lastTs || ts;
+      // Cap dt so a tab-blur hitch can't leap the pose
+      const frames = Math.min(Math.max((ts - last) / 16.67, 0.5), 2.5);
+      t.lastTs = ts;
+
+      const aimRate = t.homing ? HOME_AIM_RATE : AIM_RATE;
+      const followRate = t.homing ? HOME_FOLLOW_RATE : FOLLOW_RATE;
+      const liftRate = t.homing ? HOME_LIFT_RATE : LIFT_RATE;
+      const aimA = 1 - (1 - aimRate) ** frames;
+      const followA = 1 - (1 - followRate) ** frames;
+      const liftA = 1 - (1 - liftRate) ** frames;
+
+      t.aimY += (t.rawY - t.aimY) * aimA;
+      t.aimX += (t.rawX - t.aimX) * aimA;
+      t.aimZ += (t.rawZ - t.aimZ) * aimA;
+
+      t.curY += (t.aimY - t.curY) * followA;
+      t.curX += (t.aimX - t.curX) * followA;
+      t.curZ += (t.aimZ - t.curZ) * liftA;
+
+      paintTilt();
+
+      const settling =
+        Math.abs(t.rawY - t.curY) > SETTLE_EPS ||
+        Math.abs(t.rawX - t.curX) > SETTLE_EPS ||
+        Math.abs(t.rawZ - t.curZ) > SETTLE_EPS ||
+        Math.abs(t.aimY - t.curY) > SETTLE_EPS ||
+        Math.abs(t.aimX - t.curX) > SETTLE_EPS;
+
+      if (settling) {
+        t.raf = requestAnimationFrame(tick);
+      } else {
+        // Freeze in place — never snap toward raw
+        if (t.homing) t.homing = false;
+        t.lastTs = 0;
+        t.raf = 0;
+      }
+    };
+    tilt.current.lastTs = 0;
+    tilt.current.raf = requestAnimationFrame(tick);
+  }, [interactive, paintTilt]);
+
+  useEffect(() => {
+    // Initial paint once the tilt node exists; refresh when mode flips
+    const id = requestAnimationFrame(() => paintTilt());
+    return () => {
+      cancelAnimationFrame(id);
+      clearHomeTimer();
+      if (tilt.current.raf) cancelAnimationFrame(tilt.current.raf);
+      tilt.current.raf = 0;
+    };
+  }, [paintTilt, clearHomeTimer, resolvedMode]);
+
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!interactive || !stageRef.current) return;
+    clearHomeTimer();
+    tilt.current.homing = false;
+    const rect = stageRef.current.getBoundingClientRect();
+    const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1;
+    const t = tilt.current;
+    t.rawY = rest.rotateY + nx * range.y;
+    t.rawX = rest.rotateX - ny * range.x;
+    t.rawZ = 8;
+    startTiltLoop();
+  }, [clearHomeTimer, interactive, range.x, range.y, rest.rotateX, rest.rotateY, startTiltLoop]);
+
+  const onPointerEnter = useCallback(() => {
+    if (!interactive || !stageRef.current) return;
+    clearHomeTimer();
+    tilt.current.homing = false;
+    stageRef.current.dataset.tiltHover = 'true';
+  }, [clearHomeTimer, interactive]);
+
+  const onPointerLeave = useCallback(() => {
+    if (stageRef.current) stageRef.current.dataset.tiltHover = 'false';
+    tilt.current.rawZ = 0;
+    startTiltLoop();
+    clearHomeTimer();
+    homeTimerRef.current = setTimeout(() => {
+      homeTimerRef.current = null;
+      const t = tilt.current;
+      t.homing = true;
+      t.rawY = rest.rotateY;
+      t.rawX = rest.rotateX;
+      t.rawZ = 0;
+      startTiltLoop();
+    }, REST_RETURN_DELAY_MS);
+  }, [clearHomeTimer, rest.rotateX, rest.rotateY, startTiltLoop]);
 
   return (
     <div
+      ref={stageRef}
       className={className}
+      data-tilt-hover="false"
+      data-export={exportMode ? 'true' : undefined}
+      data-mockup-mode={resolvedMode}
+      onPointerMove={interactive ? onPointerMove : undefined}
+      onPointerEnter={interactive ? onPointerEnter : undefined}
+      onPointerLeave={interactive ? onPointerLeave : undefined}
       style={{
         position: 'relative',
         width: '100%',
         height: containerH,
-        overflow: 'visible', // never clip 3D rotation
+        overflow: 'visible',
+        // Solid stage fill on the root so rounded-corner AA never punches
+        // through transparent layers to the dark studio chrome.
+        backgroundColor: stage.base,
+        cursor: interactive ? 'pointer' : undefined,
       }}
     >
-      {/* Background bloom — always full-width, clipped to shape */}
       <div style={{
         position: 'absolute', inset: 0,
-        borderRadius: hero ? 0 : 'var(--radius-card)',
         overflow: 'hidden',
         background: bloom,
         zIndex: 0,
+        pointerEvents: 'none',
       }}>
         {hero && (
           <div style={{
             position: 'absolute', inset: 0,
             background: hasText
-              ? 'radial-gradient(ellipse 60% 100% at 100% 50%, transparent 30%, rgba(24,24,26,0.92) 80%)'
-              : 'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 42%, rgba(24,24,26,0.88) 100%)',
+              ? `radial-gradient(ellipse 60% 100% at 100% 50%, transparent 30%, ${stage.scrimSide} 80%)`
+              : `radial-gradient(ellipse 100% 100% at 50% 50%, transparent 42%, ${stage.scrim} 100%)`,
           }} />
         )}
       </div>
 
       {hasText ? (
-        /* ── Two-column: text left · device right ── */
         <div style={{ position: 'absolute', inset: 0, display: 'flex', zIndex: 1 }}>
-
-          {/* Left: text */}
           <div style={{
             width: '40%',
             flexShrink: 0,
@@ -461,8 +1055,8 @@ export default function DeviceMockup({ devices, size, preLabel, title, descripti
             padding: 'clamp(1.5rem, 3vw, 3rem) clamp(1.5rem, 3vw, 2.5rem)',
             gap: '0.6rem',
             zIndex: 5,
+            pointerEvents: 'none',
           }}>
-            {/* Logo mark */}
             <div style={{
               width: 40, height: 40, borderRadius: '50%',
               backgroundColor: 'var(--color-accent)',
@@ -471,32 +1065,48 @@ export default function DeviceMockup({ devices, size, preLabel, title, descripti
             }}>
               <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.6875rem', fontWeight: 700, color: '#fff', letterSpacing: '0.02em' }}>EP</span>
             </div>
-
-            {/* Title */}
             {title && (
               <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-title)', fontWeight: 600, lineHeight: 1.2, color: 'var(--color-ink)', margin: 0, letterSpacing: '-0.01em' }}>
                 {title}
               </h2>
             )}
-
-            {/* Description */}
             {description && (
               <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-body-sm)', lineHeight: 1.65, color: 'var(--color-muted)', margin: 0, maxWidth: '28ch', marginTop: '0.25rem' }}>
                 {description}
               </p>
             )}
           </div>
-
-          {/* Right: device */}
           <div style={{ flex: 1, position: 'relative' }}>
-            <DeviceScene column />
+            <DeviceScene
+              primaryType={primaryType}
+              secondaryType={secondaryType}
+              size={size}
+              isSingle={isSingle}
+              primaryNudge={primaryNudge}
+              secondaryNudge={secondaryNudge}
+              primaryImage={primaryImage}
+              secondaryImage={secondaryImage}
+              perspective={rest.perspective}
+              tiltRef={tiltRef}
+              interactive={interactive}
+            />
           </div>
         </div>
       ) : (
-        /* ── Single-column: device centered ── */
         <div style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
-          <DeviceScene column={false} />
-
+          <DeviceScene
+            primaryType={primaryType}
+            secondaryType={secondaryType}
+            size={size}
+            isSingle={isSingle}
+            primaryNudge={primaryNudge}
+            secondaryNudge={secondaryNudge}
+            primaryImage={primaryImage}
+            secondaryImage={secondaryImage}
+            perspective={rest.perspective}
+            tiltRef={tiltRef}
+            interactive={interactive}
+          />
         </div>
       )}
     </div>
