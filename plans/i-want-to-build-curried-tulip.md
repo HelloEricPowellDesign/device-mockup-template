@@ -122,6 +122,47 @@ Screen colors: `#111113` bg, `#3A3A3C` for UI chrome elements, `#F54A38` sparing
 
 ---
 
+## Workflow: From Template to Final Creative
+
+### Step 1 — Approve the comp (this Make project)
+The Make project serves as an interactive design comp. You review the animation in the preview panel, tweak device proportions, motion feel, screen content style, and colors until it's right.
+
+### Step 2 — Configure per case study
+Each case study needs its own device + orientation. Configuration is just a prop:
+```tsx
+// NSRL Form → iPad landscape
+<DeviceMockup device="ipad" size="hero" />
+
+// A mobile app case study → iPhone
+<DeviceMockup device="iphone" size="card" />
+```
+
+You can also pass custom `className` to adjust background color or sizing per case study context without changing the component itself.
+
+### Step 3 — Choose your output format
+
+Your Astro portfolio has no React runtime. There are two clean paths to get the final creative into the site:
+
+#### Path A — Screen-record to video (recommended for now)
+Once the animation is approved in the preview panel, screen-record it (QuickTime / OBS) and export as **WebM + MP4 fallback**. Drop the video into your Astro case study page as:
+```html
+<video autoplay loop muted playsinline>
+  <source src="/motion/nsrl-ipad.webm" type="video/webm" />
+  <source src="/motion/nsrl-ipad.mp4" type="video/mp4" />
+</video>
+```
+This is the exact same pattern used by sites like videinfra.com. Zero JS runtime cost, perfect loop, works everywhere.
+
+#### Path B — Port to vanilla CSS + HTML (for Astro integration without video)
+Because the animation is CSS-driven (Framer Motion only adds spring wrapper — the actual transforms/keyframes are standard CSS), the component can be ported to a plain HTML/CSS Astro component (`.astro` file) after approval. This keeps your zero-JS constraint and matches your existing tech stack. This would be a follow-up step after the comp is approved and finalized.
+
+#### Path C — Astro React island (optional middle ground)
+Astro supports `client:load` islands. You could bring the React component in directly with `@astrojs/react` if you want the interactive device-switcher toggle. Heavier than Path A or B, but an option if the animation complexity grows.
+
+**Recommended starting point: Path A.** Get the animation right in the comp, record it, ship it. Port to vanilla CSS later if you want it to be live-animated rather than a video.
+
+---
+
 ## Verification
 
 - Preview panel shows smooth float + screen animation immediately
