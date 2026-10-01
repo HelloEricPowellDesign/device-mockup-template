@@ -398,18 +398,6 @@ export default function DeviceMockup({ devices, size, title, description, classN
               </p>
             )}
 
-            {/* Device label below description */}
-            <p style={{
-              fontFamily: 'var(--font-data)',
-              fontSize: 'var(--text-data)',
-              color: 'var(--color-rule)',
-              letterSpacing: '0.07em',
-              textTransform: 'uppercase',
-              margin: 0,
-              marginTop: '0.25rem',
-            }}>
-              {deviceLabel}
-            </p>
           </div>
 
           {/* Right: device */}
@@ -422,21 +410,6 @@ export default function DeviceMockup({ devices, size, title, description, classN
         <div style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
           <DeviceScene column={false} />
 
-          {/* Bottom label (no text column) */}
-          {hero && (
-            <div style={{
-              position: 'absolute', bottom: '1.25rem', left: 0, right: 0,
-              textAlign: 'center',
-              fontFamily: 'var(--font-data)',
-              fontSize: 'var(--text-data)',
-              color: 'var(--color-muted)',
-              letterSpacing: '0.07em',
-              textTransform: 'uppercase',
-              zIndex: 10,
-            }}>
-              {deviceLabel}
-            </div>
-          )}
         </div>
       )}
     </div>
