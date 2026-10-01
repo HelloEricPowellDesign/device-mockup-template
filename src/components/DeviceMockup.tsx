@@ -29,7 +29,7 @@ const NATURAL: Record<DeviceType, { w: number; h: number }> = {
 /* Target apparent height (px) per role × size */
 const TARGET_H: Record<DisplaySize, Record<'single' | 'primary' | 'secondary', number>> = {
   hero:  { single: 370, primary: 330, secondary: 250 },
-  card:  { single: 160, primary: 145, secondary: 110 },
+  card:  { single: 160, primary: 112, secondary: 80  }, // smaller for pairs to prevent clipping
 };
 
 function getScale(device: DeviceType, size: DisplaySize, role: 'single' | 'primary' | 'secondary') {
@@ -350,10 +350,12 @@ export default function DeviceMockup({ devices, size, title, description, animVa
   const primaryScale     = getScale(primaryType, size, isSingle ? 'single' : 'primary');
   const primaryApparentW = NATURAL[primaryType].w * primaryScale;
 
-  // In single-column mode, nudge pairs left/right from center.
-  // In two-column mode, devices are centered within the right column (nudge = 0 base).
-  const primaryNudge   = isSingle ? 0 : -Math.round(primaryApparentW * 0.18);
-  const secondaryNudge = isSingle ? 0 :  Math.round(primaryApparentW * 0.32);
+  // Tighter nudge multipliers for card size so pair fits within the container.
+  const nudgeMul = hero
+    ? { p: 0.18, s: 0.32 }
+    : { p: 0.10, s: 0.20 };
+  const primaryNudge   = isSingle ? 0 : -Math.round(primaryApparentW * nudgeMul.p);
+  const secondaryNudge = isSingle ? 0 :  Math.round(primaryApparentW * nudgeMul.s);
 
   const containerH = hero ? 'clamp(440px, 58vh, 580px)' : '280px';
   const cardAnim = CARD_ANIMS[animVariant];
