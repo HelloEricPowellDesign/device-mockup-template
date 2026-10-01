@@ -7,7 +7,8 @@ interface ScreenContentProps {
 
 function MobileScreen({ size }: { size: 'card' | 'hero' }) {
   const compact = size === 'card';
-  const p = compact ? '6px 10px' : '10px 16px';
+  // Extra top padding clears the Dynamic Island pill
+  const p = compact ? '8px 10px 6px' : '14px 16px 10px';
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#111113', fontFamily: 'var(--font-data, "Open Sans", sans-serif)' }}>
@@ -16,10 +17,10 @@ function MobileScreen({ size }: { size: 'card' | 'hero' }) {
         <span style={{ fontSize: compact ? '8px' : '11px', color: '#a3a3a3', fontWeight: 600 }}>9:41</span>
         <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
           {[0, 1, 2].map((i) => (
-            <div key={i} style={{ width: compact ? 3 : 4, height: compact ? 5 : 7, borderRadius: 1, backgroundColor: '#fff' }} />
+            <div key={i} style={{ width: compact ? 3 : 4, height: compact ? 5 : 7, borderRadius: 1, backgroundColor: '#6a6a6e' }} />
           ))}
           <div style={{ width: compact ? 12 : 16, height: compact ? 6 : 8, border: '1px solid #666', borderRadius: 2, marginLeft: 2, position: 'relative' }}>
-            <div style={{ position: 'absolute', inset: 1, right: 2, background: '#fff', borderRadius: 1 }} />
+            <div style={{ position: 'absolute', inset: 1, right: 2, background: '#6a6a6e', borderRadius: 1 }} />
           </div>
         </div>
       </div>
