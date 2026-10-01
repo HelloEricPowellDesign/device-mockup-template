@@ -2,54 +2,60 @@
 
 ## Context
 
-Eric Powell's portfolio site uses "Motion" placeholders in two places:
+Eric Powell's portfolio site (Astro + CSS Custom Properties + Fontsource Open Sans) uses "Motion" placeholders in two places:
 1. **Case study card thumbnails** on the index — a compact animated device mockup
-2. **Case study page heroes** — a large, cinematic version at the top of each case study
+2. **Case study page heroes** — a large, cinematic device at the top of each case study
 
-The goal is a reusable `DeviceMockup` component that renders an animated device frame (iPhone, iPad, MacBook Pro, or desktop monitor) with a placeholder screen animation simulating UI interaction — similar to the videinfra.com hero treatment (device floating in space, screen content animating as if being used).
+This Make project is React + Vite + Tailwind v4 — used as a design comp and template. The component will later be adapted into the Astro portfolio. The goal is a reusable `DeviceMockup` component supporting iPhone, iPad, MacBook Pro, and desktop — each with a looping "in use" screen animation, matching the videinfra.com floating-device hero pattern.
 
 ---
 
-## Design System (from ericpowell-design.vercel.app/design-system/)
+## Design System (verbatim from ericpowell-design.vercel.app/design-system/)
 
-All tokens are used verbatim — no new palette is introduced.
-
-### Colors
-| Token | Dark mode | Light mode |
-|-------|-----------|------------|
-| `--color-paper` | `#18181A` | `#FFFFFF` |
-| `--color-ink` | `#FFFFFF` | `#18181A` |
-| `--color-muted` | `#A3A3A3` | `#666666` |
-| `--color-accent` | `#F54A38` | `#F54A38` |
-| `--color-rule` | `#3A3A3C` | `#DDDDDD` |
-
-The hero mockup lives on the **dark** ground (`#18181A`) — matching the portfolio's dark mode presentation.
+### Colors (dark ground — all hero/card mockups live on dark)
+| Token | Value |
+|-------|-------|
+| `--color-paper` | `#18181A` (dark bg) |
+| `--color-ink` | `#FFFFFF` |
+| `--color-muted` | `#A3A3A3` |
+| `--color-accent` | `#F54A38` |
+| `--color-rule` | `#3A3A3C` |
 
 ### Typography
-- **Font: Open Sans exclusively** — all three roles (display, body, data)
-- Device type labels use `--text-data` (0.8125rem / 13px, Open Sans, tracking as needed)
-- Any screen-content placeholder labels also use Open Sans
+- **Open Sans exclusively** — installed via `@fontsource/open-sans` (self-hosted, matching portfolio approach)
+- `--text-data: 0.8125rem` for device labels and screen chrome
+- Weights: 400, 500, 600, 700
 
-### Motion
-- `--duration: 480ms ease-out` — transition micro-interactions
-- `--duration-fast: 200ms ease-out` — quick state changes
-- `prefers-reduced-motion: reduce` collapses both to 1ms
-- Float/drift loop animation (the device hovering): 6s cubic-bezier, separate from the DS duration tokens but respects `prefers-reduced-motion`
+### Motion tokens
+- `--duration: 480ms ease-out` (transitions)
+- `--duration-fast: 200ms ease-out` (quick states)
+- `prefers-reduced-motion` collapses to 1ms (matching portfolio)
 
-### Border Radius
-- `--radius-card: 1.25rem` — card containers holding the mockup
-- Device bezels use their own natural radius per device type (iPhone ~2.5rem, iPad ~1.5rem, etc.) — not the card token
+### Border radius
+- `--radius-card: 1.25rem` — outer card containers
+- Device bezels use per-device values (iPhone ~40px, iPad ~20px, MacBook ~12px)
 
 ### Spacing
-- Uses the 4px base scale; composite tokens `--space-page-x` and `--space-section` for layout rhythm
+- 4px base; composite tokens for gutters and sections
+
+---
+
+## Animation Technology Choice
+
+**Framer Motion** (`motion`) — chosen for React-native spring physics, GPU-accelerated transforms, and built-in `useReducedMotion` hook. No JS animation loop on the main thread; transforms are off-thread via CSS compositor.
+
+Two animation layers:
+1. **Device float** — Framer Motion `animate` with `repeatType: "mirror"` spring; gentle Y-axis rotation + vertical bob, 6s period
+2. **Screen content** — Framer Motion `variants` with staggered children; rows fade/slide in sequentially, then loop. Accent pulse uses a `keyframes` array on opacity.
+
+Both layers respect `useReducedMotion()` — disables float entirely and skips stagger on reduced-motion.
 
 ---
 
 ## Component Architecture
 
-### `DeviceMockup` component (`src/components/DeviceMockup.tsx`)
+### `src/components/DeviceMockup.tsx`
 
-**Props:**
 ```ts
 type DeviceType = 'iphone' | 'ipad' | 'macbook' | 'desktop';
 type DisplaySize = 'card' | 'hero';
@@ -61,53 +67,37 @@ interface DeviceMockupProps {
 }
 ```
 
-**Per-device construction (CSS/div only — no SVG libraries or external assets):**
-- **iPhone**: Dynamic Island pill cutout at top, 390×844 aspect ratio, ~2.5rem corner radius, side buttons rendered as thin border strips
-- **iPad**: 820×1100 aspect ratio landscape, slim 8px bezels, home indicator bar
-- **MacBook Pro**: Screen (16:10) + notch + thin hinge line + keyboard palmrest base with trackpad; whole unit wider than tall
-- **Desktop**: Thin-bezel monitor (16:9) + short neck + elliptical base; standalone, no keyboard
+Device frames built with **div geometry + Tailwind utilities** — no SVG libraries or external mockup assets. Each device is a pure CSS construction:
 
-All shapes built with Tailwind utilities + inline CSS where specific aspect ratios or pixel values are needed.
+| Device | Construction notes |
+|--------|-------------------|
+| **iPhone** | Dynamic Island pill cutout, 390:844 ratio, ~40px radius, side button strips |
+| **iPad** | 820:1100 landscape ratio, 8px slim bezels, home indicator |
+| **MacBook Pro** | 16:10 screen + notch + 4px hinge line + wider keyboard palmrest base + trackpad |
+| **Desktop** | 16:9 monitor + short neck + wide elliptical stand |
 
----
+### `src/components/ScreenContent.tsx`
+Animated UI placeholder inside each screen. Content is device-appropriate:
+- **iPhone/iPad**: Mobile-style card list (nav bar, 3 list rows, one highlighted in accent)
+- **MacBook/Desktop**: Dashboard-style layout (sidebar + main content area, data rows)
 
-## Animation System
-
-### 1. Device float (outer loop)
-Applied to the entire device wrapper:
-```css
-@keyframes device-float {
-  0%, 100% { transform: perspective(1200px) rotateY(-4deg) rotateX(3deg) translateY(0px); }
-  50%       { transform: perspective(1200px) rotateY(4deg)  rotateX(-2deg) translateY(-8px); }
-}
-/* duration: 6s, easing: cubic-bezier(0.45, 0, 0.55, 1), iteration: infinite */
-```
-
-### 2. Screen content animation (inner loop)
-Inside the screen, staggered CSS animations simulate a UI being used — all using `#F54A38` accent sparingly and `#3A3A3C` as UI chrome:
-- **Nav bar**: static strip at top
-- **Content rows**: 3 placeholder content blocks that fade in sequentially (200ms stagger)
-- **Active element pulse**: one element pulses with accent color glow (`#F54A38` at low opacity)
-- **Simulated interaction flash**: a subtle highlight sweeps across a row, looping every ~8s
-
-### 3. Reduced motion
-`@media (prefers-reduced-motion: reduce)` disables the float and sweep; leaves only a 1ms fade on the screen content rows.
+Screen colors: `#111113` bg, `#3A3A3C` for UI chrome elements, `#F54A38` sparingly for one active/accent element.
 
 ---
 
 ## Two Usage Contexts
 
 ### `size="card"` — case study card thumbnail
-- Outer container: fixed height ~220px, `border-radius: var(--radius-card)` (1.25rem)
-- Background: `#18181A` with a faint radial bloom using `rgba(245,74,56,0.06)` at center (subtle accent warmth)
-- Device scaled to ~70% of container height, centered
-- No text labels (compact format)
+- Outer container: fixed 220px height, `border-radius: 1.25rem`, overflow hidden
+- Background: `#18181A` + faint radial warm bloom (`rgba(245,74,56,0.05)`)
+- Device at ~65% container height, centered
+- No labels
 
 ### `size="hero"` — case study page header
-- Outer container: full viewport width, 480–560px tall on desktop
-- Device larger, occupies ~65% of width at most
-- Device type + orientation label below in Open Sans `--text-data` / `--color-muted`
-- Same bloom background, deeper radial spread
+- Full-width container, 480–560px tall on desktop, responsive via `clamp`
+- Device at ~65% container width max
+- Open Sans `--text-data` label below: device type + "· Portrait" or "· Landscape"
+- Richer radial bloom, subtle vignette at edges
 
 ---
 
@@ -115,28 +105,28 @@ Inside the screen, staggered CSS animations simulate a UI being used — all usi
 
 | File | Action |
 |------|--------|
-| `src/index.css` | Add `@import` for Open Sans (Google Fonts), define DS color/spacing/motion CSS custom properties |
-| `src/components/DeviceMockup.tsx` | New — device frame rendering + float animation |
-| `src/components/ScreenContent.tsx` | New — animated placeholder UI inside screen |
-| `src/App.tsx` | Demo comp: hero variant (MacBook, full width) + 4-device card row |
+| `package.json` | Add `@fontsource/open-sans`, `motion` (Framer Motion) |
+| `src/index.css` | Import Fontsource Open Sans, define DS CSS custom property tokens, keyframes |
+| `src/components/DeviceMockup.tsx` | New — device frame + Framer Motion float |
+| `src/components/ScreenContent.tsx` | New — staggered animated screen placeholder |
+| `src/App.tsx` | Demo comp for approval |
 
 ---
 
-## Comp Preview (demo `App.tsx`)
+## Comp Preview (approval demo in `App.tsx`)
 
-The demo renders a complete, approval-ready visual:
-1. **Top section** — MacBook Pro in `hero` size, centered on dark ground
-2. **Device gallery row** — all 4 device types at `card` size, evenly spaced
-3. Open Sans data-weight labels beneath each card: "iPhone 15 Pro", "iPad", "MacBook Pro", "Desktop"
-4. A small toggle (pill button in DS accent red) to switch between `hero` and `card` views interactively
+1. **Hero section** — MacBook Pro, `size="hero"`, full width, dark ground
+2. **Device gallery** — all 4 devices at `size="card"`, evenly spaced in a row
+3. **Device type labels** in Open Sans below each card
+4. **Pill toggle** (accent `#F54A38`, `border-radius: 999px`) to switch demo device in the hero slot
 
 ---
 
 ## Verification
 
-- Hot reload shows both contexts immediately in the preview panel
-- All 4 device types render at correct proportions in both `card` and `hero` sizes
-- Screen content animation loops smoothly (CSS-only)
-- `prefers-reduced-motion` disables float + sweep (test in DevTools → Rendering)
-- Open Sans loads via Google Fonts `@import` (confirmed public face)
+- Preview panel shows smooth float + screen animation immediately
+- All 4 device types correct proportions at both sizes
+- `useReducedMotion()` disables float and stagger
+- Open Sans self-hosted (no external font request)
 - No TypeScript errors
+- Framer Motion transforms stay on GPU compositor thread (transform/opacity only)
