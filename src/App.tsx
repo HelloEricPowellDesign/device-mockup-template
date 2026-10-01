@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import DeviceMockup, { DeviceType, DeviceSpec } from './components/DeviceMockup';
 import type { DeviceMockupProps } from './components/DeviceMockup';
 
@@ -111,8 +111,49 @@ function Divider() {
   return <div style={{ height: '1px', backgroundColor: 'var(--color-rule)', margin: '0 var(--space-page-x)' }} />;
 }
 
+function UploadZone({ onImage }: { onImage: (url: string, name: string) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
+
+  const handle = useCallback((file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    onImage(URL.createObjectURL(file), file.name);
+  }, [onImage]);
+
+  return (
+    <div
+      onClick={() => inputRef.current?.click()}
+      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={(e) => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) handle(f); }}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 'var(--space-3)',
+        padding: '10px 16px',
+        borderRadius: 'var(--radius-button)',
+        border: `1px dashed ${dragging ? 'var(--color-accent)' : 'var(--color-rule)'}`,
+        backgroundColor: dragging ? 'rgba(245,74,56,0.06)' : 'transparent',
+        cursor: 'pointer',
+        transition: 'all var(--duration-fast) ease-out',
+        flexShrink: 0,
+      }}
+    >
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
+        <path d="M7 1v8M4 4l3-3 3 3M1 10v1.5A1.5 1.5 0 002.5 13h9A1.5 1.5 0 0013 11.5V10" stroke="var(--color-muted)" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+      <span style={{ fontFamily: 'var(--font-data)', fontSize: 'var(--text-data)', color: 'var(--color-muted)', whiteSpace: 'nowrap' }}>
+        Upload screenshot
+      </span>
+      <input ref={inputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handle(f); }} />
+    </div>
+  );
+}
+
 export default function App() {
   const [heroIdx, setHeroIdx] = useState(4); // default: Desktop + iPhone
+  const [screenImage, setScreenImage] = useState<string | null>(null);
+  const [imageName, setImageName] = useState<string | null>(null);
 
   const active = heroOptions[heroIdx];
 
@@ -137,13 +178,29 @@ export default function App() {
         <div style={{ maxWidth: '72rem', margin: '0 auto' }}>
           <SectionLabel n="01" pre="Usage context" title="Case study hero" />
 
-          {/* Switcher — single + multi combos */}
-          <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-6)', flexWrap: 'wrap' }}>
+          {/* Switcher + upload row */}
+          <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-6)', flexWrap: 'wrap', alignItems: 'center' }}>
             {heroOptions.map((opt, i) => (
               <PillButton key={i} active={heroIdx === i} onClick={() => setHeroIdx(i)}>
                 {opt.label}
               </PillButton>
             ))}
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+              {screenImage && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                  <span style={{ fontFamily: 'var(--font-data)', fontSize: 'var(--text-data)', color: 'var(--color-muted)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {imageName}
+                  </span>
+                  <button
+                    onClick={() => { setScreenImage(null); setImageName(null); }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-muted)', fontSize: 'var(--text-data)', padding: '2px 6px', borderRadius: 4, lineHeight: 1 }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+              <UploadZone onImage={(url, name) => { setScreenImage(url); setImageName(name); }} />
+            </div>
           </div>
 
           {/* Hero mockup — overflow visible so 3D rotation never clips */}
@@ -153,6 +210,7 @@ export default function App() {
               size="hero"
               title={active.title}
               description={active.description}
+              screenImage={screenImage ?? undefined}
             />
           </div>
         </div>

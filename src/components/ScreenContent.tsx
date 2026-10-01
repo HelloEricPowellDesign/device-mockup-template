@@ -1,14 +1,53 @@
+import { useRef, useState } from 'react';
+
 type ScreenVariant = 'mobile' | 'desktop';
 
 interface ScreenContentProps {
   variant: ScreenVariant;
   size: 'card' | 'hero';
+  image?: string;
 }
 
-function MobileScreen({ size }: { size: 'card' | 'hero' }) {
+function ScrollingImageScreen({ src }: { src: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [scrollDist, setScrollDist] = useState(0);
+
+  function measure() {
+    if (!containerRef.current || !imgRef.current) return;
+    const cH = containerRef.current.clientHeight;
+    const iH = imgRef.current.clientHeight;
+    setScrollDist(Math.max(0, iH - cH));
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative', backgroundColor: '#111113' }}
+    >
+      <img
+        ref={imgRef}
+        src={src}
+        onLoad={measure}
+        alt=""
+        style={{
+          width: '100%',
+          height: 'auto',
+          display: 'block',
+          willChange: 'transform',
+          animation: scrollDist > 0 ? 'screen-scroll 14s ease-in-out infinite' : 'none',
+          '--scroll-dist': `-${scrollDist}px`,
+        } as React.CSSProperties}
+      />
+    </div>
+  );
+}
+
+function MobileScreen({ size, image }: { size: 'card' | 'hero'; image?: string }) {
   const compact = size === 'card';
-  // Extra top padding clears the Dynamic Island pill
   const p = compact ? '8px 10px 6px' : '14px 16px 10px';
+
+  if (image) return <ScrollingImageScreen src={image} />;
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#111113', fontFamily: 'var(--font-data, "Open Sans", sans-serif)' }}>
@@ -82,8 +121,10 @@ function MobileScreen({ size }: { size: 'card' | 'hero' }) {
   );
 }
 
-function DesktopScreen({ size }: { size: 'card' | 'hero' }) {
+function DesktopScreen({ size, image }: { size: 'card' | 'hero'; image?: string }) {
   const compact = size === 'card';
+
+  if (image) return <ScrollingImageScreen src={image} />;
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', fontFamily: 'var(--font-data, "Open Sans", sans-serif)' }}>
@@ -157,7 +198,7 @@ function DesktopScreen({ size }: { size: 'card' | 'hero' }) {
   );
 }
 
-export default function ScreenContent({ variant, size }: ScreenContentProps) {
-  if (variant === 'mobile') return <MobileScreen size={size} />;
-  return <DesktopScreen size={size} />;
+export default function ScreenContent({ variant, size, image }: ScreenContentProps) {
+  if (variant === 'mobile') return <MobileScreen size={size} image={image} />;
+  return <DesktopScreen size={size} image={image} />;
 }

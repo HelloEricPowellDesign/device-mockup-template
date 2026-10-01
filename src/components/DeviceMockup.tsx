@@ -8,9 +8,10 @@ export type DeviceSpec = DeviceType | [DeviceType, DeviceType];
 export interface DeviceMockupProps {
   devices: DeviceSpec;
   size: DisplaySize;
-  preLabel?: string;    // eyebrow — company name or category
+  preLabel?: string;
   title?: string;
   description?: string;
+  screenImage?: string;
   animVariant?: 0 | 1 | 2 | 3;
   className?: string;
 }
@@ -79,7 +80,7 @@ function Sheen({ radius }: { radius: number | string }) {
    Device components — always at NATURAL px
    ═══════════════════════════════════════ */
 
-function IPhone({ size }: { size: DisplaySize }) {
+function IPhone({ size, screenImage }: { size: DisplaySize; screenImage?: string }) {
   const W = NATURAL.iphone.w;   // 172
   const H = NATURAL.iphone.h;   // 373
   // iPhone 17/18: tighter corners, near-zero-bezel aesthetic
@@ -149,7 +150,7 @@ function IPhone({ size }: { size: DisplaySize }) {
             zIndex: 10,
             boxShadow: '0 0 0 1px rgba(255,255,255,0.03)',
           }} />
-          <ScreenContent variant="mobile" size={size} />
+          <ScreenContent variant="mobile" size={size} image={screenImage} />
         </div>
 
         {/* Home indicator — thinner, more translucent */}
@@ -161,7 +162,7 @@ function IPhone({ size }: { size: DisplaySize }) {
   );
 }
 
-function IPad({ size }: { size: DisplaySize }) {
+function IPad({ size, screenImage }: { size: DisplaySize; screenImage?: string }) {
   const W = NATURAL.ipad.w;   // 258
   const H = NATURAL.ipad.h;   // 371
   // iPad Pro M4: ultra-thin, equal bezels all sides, no home button
@@ -191,7 +192,7 @@ function IPad({ size }: { size: DisplaySize }) {
 
         <div style={{ position: 'absolute', inset: BW, borderRadius: R - BW, background: '#050507', boxShadow: screenRecess, overflow: 'hidden' }}>
           <div style={{ position: 'absolute', inset: 0, borderRadius: 'inherit', boxShadow: glow(), zIndex: 5, pointerEvents: 'none' }} />
-          <ScreenContent variant="mobile" size={size} />
+          <ScreenContent variant="mobile" size={size} image={screenImage} />
         </div>
 
         {/* Home indicator — iPad Pro has no home button, just slim bar */}
@@ -203,7 +204,7 @@ function IPad({ size }: { size: DisplaySize }) {
   );
 }
 
-function MacBook({ size }: { size: DisplaySize }) {
+function MacBook({ size, screenImage }: { size: DisplaySize; screenImage?: string }) {
   const screenW = 400, screenH = 250;
   const bodyW = 432, bodyH = 20;
   const R = 10, BW = 11;
@@ -221,7 +222,7 @@ function MacBook({ size }: { size: DisplaySize }) {
 
         <div style={{ position: 'absolute', inset: BW, borderRadius: R - BW, background: '#0a0a0c', boxShadow: screenRecess, overflow: 'hidden' }}>
           <div style={{ position: 'absolute', inset: 0, borderRadius: 'inherit', boxShadow: glow('rgba(100,140,255,0.1)'), zIndex: 5, pointerEvents: 'none' }} />
-          <ScreenContent variant="desktop" size={size} />
+          <ScreenContent variant="desktop" size={size} image={screenImage} />
         </div>
         <Sheen radius={`${R}px ${R}px 0 0`} />
       </div>
@@ -246,7 +247,7 @@ function MacBook({ size }: { size: DisplaySize }) {
   );
 }
 
-function DesktopMonitor({ size }: { size: DisplaySize }) {
+function DesktopMonitor({ size, screenImage }: { size: DisplaySize; screenImage?: string }) {
   const screenW = 380, screenH = 214;
   const R = 8, BW = 9;
   const neckW = 28, neckH = 34;
@@ -259,7 +260,7 @@ function DesktopMonitor({ size }: { size: DisplaySize }) {
 
         <div style={{ position: 'absolute', inset: BW, borderRadius: R - BW, background: '#0a0a0c', boxShadow: screenRecess, overflow: 'hidden' }}>
           <div style={{ position: 'absolute', inset: 0, borderRadius: 'inherit', boxShadow: glow('rgba(100,140,255,0.1)'), zIndex: 5, pointerEvents: 'none' }} />
-          <ScreenContent variant="desktop" size={size} />
+          <ScreenContent variant="desktop" size={size} image={screenImage} />
         </div>
         <Sheen radius={R} />
       </div>
@@ -276,7 +277,7 @@ function DesktopMonitor({ size }: { size: DisplaySize }) {
 }
 
 /* ── Device map ── */
-const DEVICE_MAP: Record<DeviceType, React.ComponentType<{ size: DisplaySize }>> = {
+const DEVICE_MAP: Record<DeviceType, React.ComponentType<{ size: DisplaySize; screenImage?: string }>> = {
   iphone:  IPhone,
   ipad:    IPad,
   macbook: MacBook,
@@ -300,9 +301,10 @@ interface ScaledDeviceProps {
   animDuration?: string;
   zIndex?: number;
   nudgeX?: number;
+  screenImage?: string;
 }
 
-function ScaledDevice({ device, size, role, animClass, animDelay = '0s', animDuration = '7s', zIndex = 1, nudgeX = 0 }: ScaledDeviceProps) {
+function ScaledDevice({ device, size, role, animClass, animDelay = '0s', animDuration = '7s', zIndex = 1, nudgeX = 0, screenImage }: ScaledDeviceProps) {
   const scale = getScale(device, size, role);
   const Comp = DEVICE_MAP[device];
   const nat = NATURAL[device];
@@ -326,7 +328,7 @@ function ScaledDevice({ device, size, role, animClass, animDelay = '0s', animDur
         backfaceVisibility: 'hidden',
         WebkitBackfaceVisibility: 'hidden',
       }}>
-        <Comp size={size} />
+        <Comp size={size} screenImage={screenImage} />
       </div>
     </div>
   );
@@ -342,7 +344,7 @@ const CARD_ANIMS = [
   { name: 'device-card-d', delay: '-1.6s', duration: '5.8s' },
 ];
 
-export default function DeviceMockup({ devices, size, preLabel, title, description, animVariant = 0, className = '' }: DeviceMockupProps) {
+export default function DeviceMockup({ devices, size, preLabel, title, description, screenImage, animVariant = 0, className = '' }: DeviceMockupProps) {
   const hero = size === 'hero';
   const hasText = hero && (title || description);
 
@@ -399,6 +401,7 @@ export default function DeviceMockup({ devices, size, preLabel, title, descripti
         animDuration={hero ? '7s' : cardAnim.duration}
         nudgeX={column ? primaryNudge : primaryNudge}
         zIndex={2}
+        screenImage={screenImage}
       />
       {secondaryType && (
         <ScaledDevice
@@ -410,6 +413,7 @@ export default function DeviceMockup({ devices, size, preLabel, title, descripti
           animDuration={hero ? '7s' : cardAnim.duration}
           nudgeX={column ? secondaryNudge : secondaryNudge}
           zIndex={3}
+          screenImage={screenImage}
         />
       )}
     </div>
