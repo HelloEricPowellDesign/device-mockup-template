@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import DeviceMockup, { DeviceType, DeviceSpec } from './components/DeviceMockup';
+import type { DeviceMockupProps } from './components/DeviceMockup';
 
 type HeroOption = {
   label: string;
@@ -53,11 +54,11 @@ const heroOptions: HeroOption[] = [
   },
 ];
 
-const cardExamples: { label: string; sub: string; spec: DeviceSpec }[] = [
-  { label: 'NSRL Form',     sub: 'iPad · Operator tool',         spec: 'ipad' },
-  { label: 'Mobile App',   sub: 'iPhone 15 Pro · iOS',          spec: 'iphone' },
-  { label: 'Dashboard',    sub: 'MacBook Pro · Web',             spec: 'macbook' },
-  { label: 'Ecosystem',    sub: 'Desktop + iPhone',              spec: ['desktop', 'iphone'] },
+const cardExamples: { label: string; sub: string; spec: DeviceSpec; animVariant: DeviceMockupProps['animVariant'] }[] = [
+  { label: 'NSRL Form',   sub: 'iPad · Operator tool',  spec: 'ipad',                    animVariant: 0 },
+  { label: 'Mobile App',  sub: 'iPhone · iOS',          spec: 'iphone',                  animVariant: 1 },
+  { label: 'Dashboard',   sub: 'MacBook Pro · Web',     spec: 'macbook',                 animVariant: 2 },
+  { label: 'Ecosystem',   sub: 'Desktop + iPhone',      spec: ['desktop', 'iphone'],     animVariant: 3 },
 ];
 
 function SectionLabel({ n, pre, title }: { n: string; pre: string; title: string }) {
@@ -161,7 +162,7 @@ export default function App() {
             gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
             gap: 'var(--space-6)',
           }}>
-            {cardExamples.map(({ label, sub, spec }) => (
+            {cardExamples.map(({ label, sub, spec, animVariant }) => (
               <div
                 key={label}
                 style={{
@@ -173,7 +174,7 @@ export default function App() {
               >
                 {/* Card mockup — overflow hidden here to clip to card shape */}
                 <div style={{ overflow: 'hidden', borderRadius: 'var(--radius-card) var(--radius-card) 0 0' }}>
-                  <DeviceMockup devices={spec} size="card" />
+                  <DeviceMockup devices={spec} size="card" animVariant={animVariant} />
                 </div>
 
                 <div style={{ padding: 'var(--space-4) var(--space-4) var(--space-6)' }}>

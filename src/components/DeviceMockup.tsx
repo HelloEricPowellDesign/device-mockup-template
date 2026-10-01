@@ -7,8 +7,9 @@ export type DeviceSpec = DeviceType | [DeviceType, DeviceType];
 export interface DeviceMockupProps {
   devices: DeviceSpec;
   size: DisplaySize;
-  title?: string;       // shown top-left in hero layout
-  description?: string; // shown below title in hero layout
+  title?: string;
+  description?: string;
+  animVariant?: 0 | 1 | 2 | 3; // card float variant; 0 = default
   className?: string;
 }
 
@@ -294,11 +295,12 @@ interface ScaledDeviceProps {
   role: 'single' | 'primary' | 'secondary';
   animClass: string;
   animDelay?: string;
+  animDuration?: string;
   zIndex?: number;
-  nudgeX?: number; // px offset for multi-device composition
+  nudgeX?: number;
 }
 
-function ScaledDevice({ device, size, role, animClass, animDelay = '0s', zIndex = 1, nudgeX = 0 }: ScaledDeviceProps) {
+function ScaledDevice({ device, size, role, animClass, animDelay = '0s', animDuration = '7s', zIndex = 1, nudgeX = 0 }: ScaledDeviceProps) {
   const scale = getScale(device, size, role);
   const Comp = DEVICE_MAP[device];
   const nat = NATURAL[device];
@@ -306,8 +308,6 @@ function ScaledDevice({ device, size, role, animClass, animDelay = '0s', zIndex 
   return (
     <div style={{
       position: 'absolute',
-      // Anchor to the bottom-center of the natural (unscaled) bounding box.
-      // translateX nudge shifts the visual center; scale is applied after.
       bottom: 0,
       left: '50%',
       transform: `translateX(calc(-50% + ${nudgeX}px)) scale(${scale})`,
@@ -316,7 +316,7 @@ function ScaledDevice({ device, size, role, animClass, animDelay = '0s', zIndex 
       zIndex,
     }}>
       <div style={{
-        animation: `${animClass} 7s cubic-bezier(0.45,0,0.55,1) ${animDelay} infinite`,
+        animation: `${animClass} ${animDuration} cubic-bezier(0.45,0,0.55,1) ${animDelay} infinite`,
         willChange: 'transform',
         transformStyle: 'preserve-3d',
       }}>
@@ -329,7 +329,14 @@ function ScaledDevice({ device, size, role, animClass, animDelay = '0s', zIndex 
 /* ════════════════════════
    DeviceMockup — public API
    ════════════════════════ */
-export default function DeviceMockup({ devices, size, title, description, className = '' }: DeviceMockupProps) {
+const CARD_ANIMS = [
+  { name: 'device-card-a', delay: '0s',    duration: '6.5s' },
+  { name: 'device-card-b', delay: '-2.1s', duration: '7.2s' },
+  { name: 'device-card-c', delay: '-4.3s', duration: '8s'   },
+  { name: 'device-card-d', delay: '-1.6s', duration: '5.8s' },
+];
+
+export default function DeviceMockup({ devices, size, title, description, animVariant = 0, className = '' }: DeviceMockupProps) {
   const hero = size === 'hero';
   const hasText = hero && (title || description);
 
@@ -345,7 +352,8 @@ export default function DeviceMockup({ devices, size, title, description, classN
   const primaryNudge   = isSingle ? 0 : -Math.round(primaryApparentW * 0.18);
   const secondaryNudge = isSingle ? 0 :  Math.round(primaryApparentW * 0.32);
 
-  const containerH = hero ? 'clamp(440px, 58vh, 580px)' : '220px';
+  const containerH = hero ? 'clamp(440px, 58vh, 580px)' : '280px';
+  const cardAnim = CARD_ANIMS[animVariant];
 
   const bloom = `radial-gradient(ellipse ${hasText ? '90% 80%' : '62% 58%'} at ${hasText ? '70%' : '50%'} 50%,
     rgba(245,74,56,0.09) 0%,
@@ -363,7 +371,9 @@ export default function DeviceMockup({ devices, size, title, description, classN
         device={primaryType}
         size={size}
         role={isSingle ? 'single' : 'primary'}
-        animClass="device-float"
+        animClass={hero ? 'device-float' : cardAnim.name}
+        animDelay={hero ? '0s' : cardAnim.delay}
+        animDuration={hero ? '7s' : cardAnim.duration}
         nudgeX={column ? primaryNudge : primaryNudge}
         zIndex={2}
       />
@@ -372,8 +382,9 @@ export default function DeviceMockup({ devices, size, title, description, classN
           device={secondaryType}
           size={size}
           role="secondary"
-          animClass="device-float-subtle"
-          animDelay="-3s"
+          animClass={hero ? 'device-float' : cardAnim.name}
+          animDelay={hero ? '-3s' : `calc(${cardAnim.delay} - 1.8s)`}
+          animDuration={hero ? '7s' : cardAnim.duration}
           nudgeX={column ? secondaryNudge : secondaryNudge}
           zIndex={3}
         />
