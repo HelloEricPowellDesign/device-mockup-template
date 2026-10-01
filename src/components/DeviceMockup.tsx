@@ -152,7 +152,7 @@ function IPhone({ size }: { size: DisplaySize }) {
         </div>
 
         {/* Home indicator — thinner, more translucent */}
-        <div style={{ position: 'absolute', bottom: 7, left: '50%', transform: 'translateX(-50%)', width: 72, height: 3, borderRadius: 999, background: 'rgba(255,255,255,0.18)' }} />
+        <div style={{ position: 'absolute', bottom: 7, left: '50%', transform: 'translateX(-50%)', width: 72, height: 3, borderRadius: 999, background: 'rgba(140,140,145,0.35)' }} />
         <Sheen radius={R} />
       </div>
       <FloorShadow w={W} />
@@ -194,7 +194,7 @@ function IPad({ size }: { size: DisplaySize }) {
         </div>
 
         {/* Home indicator — iPad Pro has no home button, just slim bar */}
-        <div style={{ position: 'absolute', bottom: 5, left: '50%', transform: 'translateX(-50%)', width: 64, height: 3, borderRadius: 999, background: 'rgba(255,255,255,0.15)' }} />
+        <div style={{ position: 'absolute', bottom: 5, left: '50%', transform: 'translateX(-50%)', width: 64, height: 3, borderRadius: 999, background: 'rgba(140,140,145,0.35)' }} />
         <Sheen radius={R} />
       </div>
       <FloorShadow w={W} />
