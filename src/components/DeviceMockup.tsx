@@ -350,12 +350,27 @@ export default function DeviceMockup({ devices, size, title, description, animVa
   const primaryScale     = getScale(primaryType, size, isSingle ? 'single' : 'primary');
   const primaryApparentW = NATURAL[primaryType].w * primaryScale;
 
-  // Tighter nudge multipliers for card size so pair fits within the container.
-  const nudgeMul = hero
-    ? { p: 0.18, s: 0.32 }
-    : { p: 0.10, s: 0.20 };
-  const primaryNudge   = isSingle ? 0 : -Math.round(primaryApparentW * nudgeMul.p);
-  const secondaryNudge = isSingle ? 0 :  Math.round(primaryApparentW * nudgeMul.s);
+  // Nudge calculation — hero uses a cinematic asymmetric offset;
+  // card uses geometry-based centering so the pair is always visually centered.
+  let primaryNudge = 0;
+  let secondaryNudge = 0;
+  if (!isSingle) {
+    if (hero) {
+      primaryNudge  = -Math.round(primaryApparentW * 0.18);
+      secondaryNudge =  Math.round(primaryApparentW * 0.32);
+    } else {
+      // Compute each device's apparent width at card scale, then
+      // derive nudges that place the pair's visual center at container center.
+      const secScale = getScale(secondaryType!, size, 'secondary');
+      const secApparentW = NATURAL[secondaryType!].w * secScale;
+      const gap = 10; // px gap between the two devices
+      // primaryNudge = -(secApparentW + gap) / 2  (shifts primary left by half of secondary+gap)
+      // secondaryNudge = (primaryApparentW + gap) / 2  (shifts secondary right by half of primary+gap)
+      // These ensure: primary_right_edge == secondary_left_edge - gap, pair centered at 0.
+      primaryNudge  = -Math.round((secApparentW + gap) / 2);
+      secondaryNudge =  Math.round((primaryApparentW + gap) / 2);
+    }
+  }
 
   const containerH = hero ? 'clamp(440px, 58vh, 580px)' : '280px';
   const cardAnim = CARD_ANIMS[animVariant];
