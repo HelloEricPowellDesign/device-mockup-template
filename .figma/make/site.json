@@ -1,1 +1,10 @@
-{}
+{
+  "description": "Showcases dynamic hero images with motion-based device mockups to enhance portfolio sites and case study presentations for designers.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
