@@ -79,39 +79,78 @@ function Sheen({ radius }: { radius: number | string }) {
 function IPhone({ size }: { size: DisplaySize }) {
   const W = NATURAL.iphone.w;   // 172
   const H = NATURAL.iphone.h;   // 373
-  const R = 32, BW = 9;
-  const diW = 66, diH = 18;
+  // iPhone 17/18: tighter corners, near-zero-bezel aesthetic
+  const R = 36, BW = 7;
+  // Dynamic Island — slimmer pill than original
+  const diW = 58, diH = 14;
 
-  const btn = (top: number, h: number, side: 'left' | 'right') => (
+  const railBtn = (top: number, h: number, side: 'left' | 'right') => (
     <div style={{
-      position: 'absolute', [side]: -3, top,
-      width: 3, height: h,
-      borderRadius: side === 'left' ? '2px 0 0 2px' : '0 2px 2px 0',
-      background: 'linear-gradient(180deg,#2a2a2c,#1a1a1c)',
-      boxShadow: `${side === 'left' ? '-' : ''}1px 0 2px rgba(0,0,0,0.8)`,
-      border: '1px solid rgba(255,255,255,0.06)',
-      [side === 'left' ? 'borderRight' : 'borderLeft']: 'none',
+      position: 'absolute', [side]: -2, top,
+      width: 2, height: h,
+      borderRadius: side === 'left' ? '1px 0 0 1px' : '0 1px 1px 0',
+      background: 'linear-gradient(180deg, #323234 0%, #1e1e20 50%, #2a2a2c 100%)',
+      boxShadow: `${side === 'left' ? '-1px' : '1px'} 0 3px rgba(0,0,0,0.9)`,
     }} />
   );
 
   return (
     <div style={{ position: 'relative', flexShrink: 0 }}>
       <div style={{ width: W, height: H, borderRadius: R, background: aluminum, border: specular, boxShadow: shadow(false), position: 'relative' }}>
-        {btn(72,  26, 'left')}
-        {btn(108, 42, 'left')}
-        {btn(160, 42, 'left')}
-        {btn(110, 54, 'right')}
 
-        {/* Screen recess */}
-        <div style={{ position: 'absolute', inset: BW, borderRadius: R - BW, background: '#0a0a0c', boxShadow: screenRecess, overflow: 'hidden' }}>
+        {/* Action button — left, top (small pill) */}
+        <div style={{
+          position: 'absolute', left: -3, top: 62,
+          width: 3, height: 18,
+          borderRadius: '2px 0 0 2px',
+          background: 'linear-gradient(180deg, #3a3a3c, #2a2a2c)',
+          boxShadow: '-1px 0 3px rgba(0,0,0,0.9)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRight: 'none',
+        }} />
+
+        {/* Volume up */}
+        {railBtn(90, 38, 'left')}
+        {/* Volume down */}
+        {railBtn(138, 38, 'left')}
+
+        {/* Power button — right */}
+        {railBtn(100, 52, 'right')}
+
+        {/* Camera Control — right side, below power btn. Horizontal capsule rail */}
+        <div style={{
+          position: 'absolute', right: -3, top: 166,
+          width: 3, height: 72,
+          borderRadius: '0 3px 3px 0',
+          background: 'linear-gradient(180deg, #2e2e30 0%, #262628 40%, #2e2e30 100%)',
+          boxShadow: '2px 0 4px rgba(0,0,0,0.9), inset -1px 0 1px rgba(255,255,255,0.05)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          borderLeft: 'none',
+        }} />
+        {/* Camera Control inner groove (haptic rail texture) */}
+        <div style={{
+          position: 'absolute', right: -1, top: 178,
+          width: 1, height: 48,
+          borderRadius: 1,
+          background: 'rgba(255,255,255,0.08)',
+        }} />
+
+        {/* Screen recess — ultra-thin bezel */}
+        <div style={{ position: 'absolute', inset: BW, borderRadius: R - BW, background: '#050507', boxShadow: screenRecess, overflow: 'hidden' }}>
           <div style={{ position: 'absolute', inset: 0, borderRadius: 'inherit', boxShadow: glow('rgba(120,160,255,0.1)'), zIndex: 5, pointerEvents: 'none' }} />
-          {/* Dynamic Island */}
-          <div style={{ position: 'absolute', top: 9, left: '50%', transform: 'translateX(-50%)', width: diW, height: diH, borderRadius: 999, background: '#000', zIndex: 10, boxShadow: '0 0 0 1px rgba(255,255,255,0.04)' }} />
+          {/* Dynamic Island — thinner pill */}
+          <div style={{
+            position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
+            width: diW, height: diH, borderRadius: 999,
+            background: '#000',
+            zIndex: 10,
+            boxShadow: '0 0 0 1px rgba(255,255,255,0.03)',
+          }} />
           <ScreenContent variant="mobile" size={size} />
         </div>
 
-        {/* Home indicator */}
-        <div style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', width: 64, height: 4, borderRadius: 999, background: 'rgba(255,255,255,0.22)' }} />
+        {/* Home indicator — thinner, more translucent */}
+        <div style={{ position: 'absolute', bottom: 7, left: '50%', transform: 'translateX(-50%)', width: 72, height: 3, borderRadius: 999, background: 'rgba(255,255,255,0.18)' }} />
         <Sheen radius={R} />
       </div>
       <FloorShadow w={W} />
@@ -122,21 +161,38 @@ function IPhone({ size }: { size: DisplaySize }) {
 function IPad({ size }: { size: DisplaySize }) {
   const W = NATURAL.ipad.w;   // 258
   const H = NATURAL.ipad.h;   // 371
-  const R = 18, BW = 12;
+  // iPad Pro M4: ultra-thin, equal bezels all sides, no home button
+  const R = 20, BW = 10;
 
   return (
     <div style={{ position: 'relative', flexShrink: 0 }}>
       <div style={{ width: W, height: H, borderRadius: R, background: aluminum, border: specular, boxShadow: shadow(false), position: 'relative' }}>
-        {/* Camera */}
-        <div style={{ position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)', width: 7, height: 7, borderRadius: '50%', background: '#0a0a0c', boxShadow: '0 0 0 1px rgba(255,255,255,0.04)' }} />
+        {/* FaceID / camera pill — centered top bezel */}
+        <div style={{
+          position: 'absolute', top: 4, left: '50%', transform: 'translateX(-50%)',
+          width: 28, height: 5, borderRadius: 999,
+          background: '#0a0a0c',
+          boxShadow: '0 0 0 1px rgba(255,255,255,0.04)',
+        }} />
 
-        <div style={{ position: 'absolute', inset: BW, borderRadius: R - BW, background: '#0a0a0c', boxShadow: screenRecess, overflow: 'hidden' }}>
+        {/* Top button (right edge) */}
+        <div style={{
+          position: 'absolute', right: -2, top: 52, width: 2, height: 28,
+          borderRadius: '0 2px 2px 0',
+          background: 'linear-gradient(180deg, #2a2a2c, #1e1e20)',
+          boxShadow: '1px 0 3px rgba(0,0,0,0.8)',
+        }} />
+        {/* Volume buttons (left edge) */}
+        <div style={{ position: 'absolute', left: -2, top: 72, width: 2, height: 26, borderRadius: '2px 0 0 2px', background: 'linear-gradient(180deg,#2a2a2c,#1e1e20)', boxShadow: '-1px 0 3px rgba(0,0,0,0.8)' }} />
+        <div style={{ position: 'absolute', left: -2, top: 106, width: 2, height: 26, borderRadius: '2px 0 0 2px', background: 'linear-gradient(180deg,#2a2a2c,#1e1e20)', boxShadow: '-1px 0 3px rgba(0,0,0,0.8)' }} />
+
+        <div style={{ position: 'absolute', inset: BW, borderRadius: R - BW, background: '#050507', boxShadow: screenRecess, overflow: 'hidden' }}>
           <div style={{ position: 'absolute', inset: 0, borderRadius: 'inherit', boxShadow: glow(), zIndex: 5, pointerEvents: 'none' }} />
           <ScreenContent variant="mobile" size={size} />
         </div>
 
-        {/* Home indicator */}
-        <div style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', width: 80, height: 4, borderRadius: 999, background: 'rgba(255,255,255,0.18)' }} />
+        {/* Home indicator — iPad Pro has no home button, just slim bar */}
+        <div style={{ position: 'absolute', bottom: 5, left: '50%', transform: 'translateX(-50%)', width: 64, height: 3, borderRadius: 999, background: 'rgba(255,255,255,0.15)' }} />
         <Sheen radius={R} />
       </div>
       <FloorShadow w={W} />
