@@ -8,9 +8,10 @@ export type DeviceSpec = DeviceType | [DeviceType, DeviceType];
 export interface DeviceMockupProps {
   devices: DeviceSpec;
   size: DisplaySize;
+  preLabel?: string;    // eyebrow — company name or category
   title?: string;
   description?: string;
-  animVariant?: 0 | 1 | 2 | 3; // card float variant; 0 = default
+  animVariant?: 0 | 1 | 2 | 3;
   className?: string;
 }
 
@@ -341,7 +342,7 @@ const CARD_ANIMS = [
   { name: 'device-card-d', delay: '-1.6s', duration: '5.8s' },
 ];
 
-export default function DeviceMockup({ devices, size, title, description, animVariant = 0, className = '' }: DeviceMockupProps) {
+export default function DeviceMockup({ devices, size, preLabel, title, description, animVariant = 0, className = '' }: DeviceMockupProps) {
   const hero = size === 'hero';
   const hasText = hero && (title || description);
 
@@ -454,39 +455,39 @@ export default function DeviceMockup({ devices, size, title, description, animVa
             flexDirection: 'column',
             justifyContent: 'center',
             padding: 'clamp(1.5rem, 3vw, 3rem) clamp(1.5rem, 3vw, 2.5rem)',
-            gap: '1rem',
+            gap: '0.6rem',
             zIndex: 5,
           }}>
-            {/* Accent rule */}
-            <div style={{ width: 32, height: 2, borderRadius: 1, backgroundColor: 'var(--color-accent)', flexShrink: 0 }} />
+            {/* Logo mark */}
+            <div style={{
+              width: 40, height: 40, borderRadius: '50%',
+              backgroundColor: 'var(--color-accent)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0, marginBottom: '0.5rem',
+            }}>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.6875rem', fontWeight: 700, color: '#fff', letterSpacing: '0.02em' }}>EP</span>
+            </div>
 
+            {/* Eyebrow — company / category */}
+            {preLabel && (
+              <p style={{ fontFamily: 'var(--font-data)', fontSize: 'var(--text-data)', fontWeight: 400, color: 'var(--color-muted)', margin: 0 }}>
+                {preLabel}
+              </p>
+            )}
+
+            {/* Title */}
             {title && (
-              <h2 style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: 'clamp(1.5rem, 2.4vw, 2.25rem)',
-                fontWeight: 600,
-                lineHeight: 1.15,
-                color: 'var(--color-ink)',
-                margin: 0,
-                letterSpacing: '-0.02em',
-              }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-title)', fontWeight: 600, lineHeight: 1.2, color: 'var(--color-ink)', margin: 0, letterSpacing: '-0.01em' }}>
                 {title}
               </h2>
             )}
 
+            {/* Description */}
             {description && (
-              <p style={{
-                fontFamily: 'var(--font-body)',
-                fontSize: 'var(--text-body-sm)',
-                lineHeight: 1.65,
-                color: 'var(--color-muted)',
-                margin: 0,
-                maxWidth: '30ch',
-              }}>
+              <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-body-sm)', lineHeight: 1.65, color: 'var(--color-muted)', margin: 0, maxWidth: '28ch', marginTop: '0.25rem' }}>
                 {description}
               </p>
             )}
-
           </div>
 
           {/* Right: device */}
