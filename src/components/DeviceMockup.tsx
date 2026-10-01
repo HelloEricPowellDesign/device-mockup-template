@@ -468,13 +468,6 @@ export default function DeviceMockup({ devices, size, preLabel, title, descripti
               <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.6875rem', fontWeight: 700, color: '#fff', letterSpacing: '0.02em' }}>EP</span>
             </div>
 
-            {/* Eyebrow — company / category */}
-            {preLabel && (
-              <p style={{ fontFamily: 'var(--font-data)', fontSize: 'var(--text-data)', fontWeight: 400, color: 'var(--color-muted)', margin: 0 }}>
-                {preLabel}
-              </p>
-            )}
-
             {/* Title */}
             {title && (
               <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-title)', fontWeight: 600, lineHeight: 1.2, color: 'var(--color-ink)', margin: 0, letterSpacing: '-0.01em' }}>

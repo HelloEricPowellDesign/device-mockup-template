@@ -151,7 +151,6 @@ export default function App() {
             <DeviceMockup
               devices={active.spec}
               size="hero"
-              preLabel={active.preLabel}
               title={active.title}
               description={active.description}
             />
@@ -182,17 +181,8 @@ export default function App() {
                 }}
               >
                 {/* Card mockup — overflow hidden here to clip to card shape */}
-                <div style={{ overflow: 'hidden', borderRadius: 'var(--radius-card) var(--radius-card) 0 0' }}>
+                <div style={{ overflow: 'hidden', borderRadius: 'var(--radius-card)' }}>
                   <DeviceMockup devices={spec} size="card" animVariant={animVariant} />
-                </div>
-
-                <div style={{ padding: 'var(--space-4) var(--space-4) var(--space-6)' }}>
-                  <p style={{ fontFamily: 'var(--font-data)', fontSize: 'var(--text-data)', color: 'var(--color-muted)', letterSpacing: '0.04em', marginBottom: 'var(--space-2)' }}>
-                    {sub}
-                  </p>
-                  <p style={{ fontSize: 'var(--text-body-sm)', fontWeight: 600, color: 'var(--color-ink)' }}>
-                    {label}
-                  </p>
                 </div>
               </div>
             ))}
