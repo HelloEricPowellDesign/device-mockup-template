@@ -1,3 +1,4 @@
+import './device-mockup.css';
 import ScreenContent from './ScreenContent';
 
 export type DeviceType = 'iphone' | 'ipad' | 'macbook' | 'desktop';
