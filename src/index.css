@@ -54,21 +54,16 @@ body {
 
 /* ── Device Float Animation ── */
 @keyframes device-float {
-  0%, 100% {
-    transform: perspective(1200px) rotateY(-5deg) rotateX(3deg) translateY(0px);
-  }
-  50% {
-    transform: perspective(1200px) rotateY(5deg) rotateX(-2deg) translateY(-10px);
-  }
+  0%   { transform: perspective(900px) rotateY(-8deg) rotateX(4deg) translateY(0px) translateZ(0px); }
+  33%  { transform: perspective(900px) rotateY(2deg)  rotateX(-3deg) translateY(-12px) translateZ(10px); }
+  66%  { transform: perspective(900px) rotateY(7deg)  rotateX(2deg) translateY(-6px) translateZ(4px); }
+  100% { transform: perspective(900px) rotateY(-8deg) rotateX(4deg) translateY(0px) translateZ(0px); }
 }
 
 @keyframes device-float-subtle {
-  0%, 100% {
-    transform: perspective(1200px) rotateY(-3deg) rotateX(2deg) translateY(0px);
-  }
-  50% {
-    transform: perspective(1200px) rotateY(3deg) rotateX(-1deg) translateY(-6px);
-  }
+  0%   { transform: perspective(1000px) rotateY(-5deg) rotateX(3deg) translateY(0px); }
+  50%  { transform: perspective(1000px) rotateY(4deg)  rotateX(-2deg) translateY(-7px); }
+  100% { transform: perspective(1000px) rotateY(-5deg) rotateX(3deg) translateY(0px); }
 }
 
 /* ── Screen Content Animations ── */
