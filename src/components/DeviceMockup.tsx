@@ -306,13 +306,15 @@ function ScaledDevice({ device, size, role, animClass, animDelay = '0s', animDur
   const Comp = DEVICE_MAP[device];
   const nat = NATURAL[device];
 
+  const centered = size === 'card';
+
   return (
     <div style={{
       position: 'absolute',
-      bottom: 0,
-      left: '50%',
-      transform: `translateX(calc(-50% + ${nudgeX}px)) scale(${scale})`,
-      transformOrigin: 'center bottom',
+      ...(centered
+        ? { top: '50%', left: '50%', transform: `translate(calc(-50% + ${nudgeX}px), -50%) scale(${scale})`, transformOrigin: 'center center' }
+        : { bottom: 0,  left: '50%', transform: `translateX(calc(-50% + ${nudgeX}px)) scale(${scale})`,        transformOrigin: 'center bottom' }
+      ),
       width: nat.w,
       zIndex,
     }}>
