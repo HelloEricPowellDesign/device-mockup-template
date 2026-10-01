@@ -296,7 +296,6 @@ export default function App() {
     return out;
   }, [images, activeDevices]);
 
-  const hasScrollImage = Object.keys(screenImages).length > 0;
   const slug = slugify(slugInput || active.title || 'mockup');
 
   useEffect(() => {
@@ -348,7 +347,6 @@ export default function App() {
           el,
           kind,
           slug,
-          hasScrollImage,
           onProgress: (label, ratio) => {
             setExportProgress({
               label: `${kind}: ${label}`,
@@ -386,7 +384,7 @@ export default function App() {
       setExporting(false);
       setTimeout(() => setExportProgress(null), 8000);
     }
-  }, [activeDevices, exporting, hasScrollImage, slug]);
+  }, [activeDevices, exporting, slug]);
 
   const exportSize = exportKind ? EXPORT_SIZES[exportKind] : EXPORT_SIZES.hero;
 
@@ -521,10 +519,10 @@ export default function App() {
 
       <footer style={{ padding: 'var(--space-6) var(--space-page-x)', borderTop: '1px solid var(--color-rule)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
         <p style={{ fontFamily: 'var(--font-data)', fontSize: 'var(--text-data)', color: 'var(--color-muted)' }}>
-          Export saves PNG poster + WebM (and MP4 when available) into ericpowell.design/public/motion/, and updates matching work frontmatter (motionHero / motionCard / motionDevices).
+          Export saves a static PNG poster into ericpowell.design/public/motion/, and updates matching work frontmatter (motionHero / motionCard / motionDevices). Screenshots stay CSS-positioned with no scroll animation.
         </p>
         <p style={{ fontFamily: 'var(--font-data)', fontSize: 'var(--text-data)', color: 'var(--color-rule)' }}>
-          Hero 2880×1152 · Card 1280×800 · Local only
+          Hero 2880×1152 · Card 1280×800 · PNG only · Local only
         </p>
       </footer>
 

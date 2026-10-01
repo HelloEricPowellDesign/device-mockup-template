@@ -17,7 +17,7 @@ const PORTFOLIO_ROOT = path.resolve(__dirname, '../ericpowell.design');
 const MOTION_DIR = path.join(PORTFOLIO_ROOT, 'public/motion');
 const WORK_DIR = path.join(PORTFOLIO_ROOT, 'src/content/work');
 
-const SAFE_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*-(?:hero|card)\.(?:png|webm|mp4)$/;
+const SAFE_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*-(?:hero|card)\.png$/;
 
 function readBody(req: IncomingMessage): Promise<Buffer> {
   return new Promise((resolve, reject) => {

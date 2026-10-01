@@ -201,12 +201,6 @@ html[data-mode="light"] .mode-toggle__icon {
   to { width: var(--bar-w, 70%); }
 }
 
-@keyframes screen-scroll {
-  0%, 18%  { top: 0; }
-  52%, 68% { top: var(--scroll-dist, 0px); }
-  97%, 100% { top: 0; }
-}
-
 @keyframes fade-loop {
   0%, 100% { opacity: 0; }
   15%, 85% { opacity: 1; }

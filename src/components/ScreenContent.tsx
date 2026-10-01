@@ -1,4 +1,4 @@
-import { createContext, useContext, useRef, useState, type CSSProperties } from 'react';
+import { createContext, useContext } from 'react';
 
 type ScreenVariant = 'mobile' | 'desktop';
 
@@ -74,35 +74,30 @@ interface ScreenContentProps {
   image?: string;
 }
 
-function ScrollingImageScreen({ src }: { src: string }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const imgRef = useRef<HTMLImageElement>(null);
-  const [scrollDist, setScrollDist] = useState(0);
-
-  function measure() {
-    if (!containerRef.current || !imgRef.current) return;
-    const cH = containerRef.current.clientHeight;
-    const iH = imgRef.current.clientHeight;
-    setScrollDist(Math.max(0, iH - cH));
-  }
-
+/** Screenshot cropped to the screen via CSS position (top-aligned, no scroll animation). */
+function StaticImageScreen({ src }: { src: string }) {
   return (
     <div
-      ref={containerRef}
-      style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative', backgroundColor: '#111113' }}
+      style={{
+        width: '100%',
+        height: '100%',
+        overflow: 'hidden',
+        position: 'relative',
+        backgroundColor: '#111113',
+      }}
     >
       <img
-        ref={imgRef}
         src={src}
-        onLoad={measure}
         alt=""
-        className={`screen-scroll-img${scrollDist > 0 ? ' is-scrolling' : ''}`}
+        className="screen-static-img"
         style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
           width: '100%',
           height: 'auto',
           display: 'block',
-          '--scroll-dist': `-${scrollDist}px`,
-        } as CSSProperties}
+        }}
       />
     </div>
   );
@@ -122,7 +117,7 @@ function MobileScreen({ size, image }: { size: 'card' | 'hero'; image?: string }
   const batW = compact ? 8.5 : 11;
   const batH = compact ? 4 : 5;
 
-  if (image) return <ScrollingImageScreen src={image} />;
+  if (image) return <StaticImageScreen src={image} />;
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#111113', fontFamily: 'var(--font-data, "Open Sans", sans-serif)' }}>
@@ -296,7 +291,7 @@ function DesktopScreen({ size, image }: { size: 'card' | 'hero'; image?: string 
   const p = PALETTES[theme];
   const compact = size === 'card';
 
-  if (image) return <ScrollingImageScreen src={image} />;
+  if (image) return <StaticImageScreen src={image} />;
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', fontFamily: 'var(--font-data, "Open Sans", sans-serif)' }}>

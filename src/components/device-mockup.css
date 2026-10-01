@@ -13,30 +13,10 @@
   to   { width: var(--bar-w, 70%); }
 }
 
-/* Use top (not transform) so parent 3D tilt updates never restart this loop */
-@keyframes screen-scroll {
-  0%, 18%  { top: 0; }
-  52%, 68% { top: var(--scroll-dist, 0px); }
-  97%, 100% { top: 0; }
-}
-
-/* Screenshot scroll runs continuously — hover only drives device tilt */
-.screen-scroll-img {
-  position: relative;
-  top: 0;
-  will-change: top;
-  animation-play-state: running;
-}
-
-.screen-scroll-img.is-scrolling {
-  animation: screen-scroll 72s ease-in-out infinite;
-  animation-play-state: running;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .screen-scroll-img.is-scrolling {
-    animation: none !important;
-  }
+/* Screenshot is CSS-positioned (top-aligned crop). No scroll animation —
+   video export quality was too soft; portfolio uses live tilt + PNG posters. */
+.screen-static-img {
+  pointer-events: none;
 }
 
 /*
