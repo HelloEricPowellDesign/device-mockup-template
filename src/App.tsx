@@ -402,11 +402,11 @@ export default function App() {
         </span>
       </header>
 
-      <section style={{ padding: 'var(--space-12) var(--space-page-x) var(--space-8)' }}>
+      <section style={{ padding: 'var(--space-8) var(--space-page-x) var(--space-6)' }}>
         <div style={{ maxWidth: '72rem', margin: '0 auto' }}>
           <SectionLabel n="01" pre="Compose" title="Device + screenshots" />
 
-          <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-6)', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
             {heroOptions.map((opt, i) => (
               <PillButton key={opt.label} active={heroIdx === i} onClick={() => setHeroIdx(i)}>
                 {opt.label}
@@ -414,7 +414,7 @@ export default function App() {
             ))}
           </div>
 
-          <div style={{ display: 'flex', gap: 'var(--space-6)', marginBottom: 'var(--space-8)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: 'var(--space-4)', marginBottom: 'var(--space-5)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
             {activeDevices.map((device) => (
               <UploadSlot
                 key={device}
